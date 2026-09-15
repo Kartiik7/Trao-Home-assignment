@@ -3,18 +3,20 @@ import { URL } from "url";
 import robotsParser, { Robot } from "robots-parser";
 import { validateUrl } from "./validator";
 
+export type FetchFailureReason =
+  | "TIMEOUT"
+  | "NOT_FOUND"
+  | "INVALID_URL"
+  | "TOO_LARGE"
+  | "UNSUPPORTED_TYPE"
+  | "FETCH_ERROR"
+  | "ROBOTS_DISALLOWED";
+
 export type FetchResult =
   | { ok: true; html: string; url: string }
   | {
       ok: false;
-      reason:
-        | "TIMEOUT"
-        | "NOT_FOUND"
-        | "INVALID_URL"
-        | "TOO_LARGE"
-        | "UNSUPPORTED_TYPE"
-        | "FETCH_ERROR"
-        | "ROBOTS_DISALLOWED";
+      reason: FetchFailureReason;
       url: string;
     };
 
@@ -86,14 +88,14 @@ export async function fetchPage(
     });
 
     // 4. Validate Content-Type
-    const contentType = response.headers["content-type"] || "";
+    const contentType = String(response.headers["content-type"] || "");
     if (!contentType.includes("text/html")) {
       return { ok: false, reason: "UNSUPPORTED_TYPE", url: urlString };
     }
 
     return { ok: true, html: response.data, url: urlString };
   } catch (err: any) {
-    let reason: FetchResult["reason"] = "FETCH_ERROR";
+    let reason: FetchFailureReason = "FETCH_ERROR";
 
     if (err.code === "ECONNABORTED" || err.message?.toLowerCase().includes("timeout")) {
       reason = "TIMEOUT";

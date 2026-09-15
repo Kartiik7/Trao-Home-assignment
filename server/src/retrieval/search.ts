@@ -18,15 +18,15 @@ export interface DiscussionResult {
 export async function searchPublicDiscussion(
   companyName: string
 ): Promise<{ discussion: DiscussionResult[]; error?: string }> {
-  // If we had a Serper API key:
-  const serperKey = process.env.SERPER_API_KEY;
+  // If we had a Tavily API key:
+  const tavilyKey = process.env.TAVILY_API_KEY;
   
-  if (!serperKey) {
+  if (!tavilyKey) {
     // Graceful fallback for development / assignment testing without API keys
-    console.warn(`⚠️ SERPER_API_KEY not set. Skipping real web search for "${companyName}".`);
+    console.warn(`⚠️ TAVILY_API_KEY not set. Skipping real web search for "${companyName}".`);
     return {
       discussion: [],
-      error: "SERPER_API_KEY_MISSING",
+      error: "TAVILY_API_KEY_MISSING",
     };
   }
 
@@ -34,22 +34,28 @@ export async function searchPublicDiscussion(
 
   try {
     const res = await axios.post(
-      "https://google.serper.dev/search",
-      { q: query, num: 3 },
+      "https://api.tavily.com/search",
+      {
+        query,
+        include_answer: false,
+        include_raw_content: false,
+        max_results: 3,
+        include_domains: ["glassdoor.com", "reddit.com"],
+      },
       {
         headers: {
-          "X-API-KEY": serperKey,
+          "Authorization": `Bearer ${tavilyKey}`,
           "Content-Type": "application/json",
         },
         timeout: 5000,
       }
     );
 
-    const organic = res.data?.organic || [];
-    const discussion = organic.map((item: any) => ({
-      url: item.link,
-      snippet: item.snippet,
-      source: new URL(item.link).hostname.replace("www.", ""),
+    const results = res.data?.results || [];
+    const discussion = results.map((item: any) => ({
+      url: item.url,
+      snippet: item.content,
+      source: new URL(item.url).hostname.replace("www.", ""),
     }));
 
     return { discussion };

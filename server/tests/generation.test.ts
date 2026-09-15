@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { callLlm } from "../src/generation/llmClient";
 import { extractRequirements } from "../src/generation/steps";
@@ -8,14 +7,16 @@ const { mockGenerateContent } = vi.hoisted(() => {
   return { mockGenerateContent: vi.fn() };
 });
 
-// Mock the GoogleGenerativeAI client entirely
-vi.mock("@google/generative-ai", () => {
+// Mock the Groq client entirely
+vi.mock("groq-sdk", () => {
   return {
-    GoogleGenerativeAI: vi.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(() => {
       return {
-        getGenerativeModel: vi.fn().mockReturnValue({
-          generateContent: mockGenerateContent
-        })
+        chat: {
+          completions: {
+            create: mockGenerateContent
+          }
+        }
       };
     })
   };
@@ -35,11 +36,11 @@ describe("LLM Generation Layer", () => {
     it("should retry once with correction on malformed JSON", async () => {
       // 1st attempt: bad JSON
       mockGenerateContent.mockResolvedValueOnce({
-        response: { text: () => "```json\n{ bad json \n```" }
+        choices: [{ message: { content: "```json\n{ bad json \n```" } }]
       });
       // 2nd attempt: good JSON
       mockGenerateContent.mockResolvedValueOnce({
-        response: { text: () => '{"foo": "bar"}' }
+        choices: [{ message: { content: '{"foo": "bar"}' } }]
       });
 
       const res = await callLlm("test prompt", DummySchema);
@@ -47,7 +48,9 @@ describe("LLM Generation Layer", () => {
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
       
       // Ensure the second prompt included the correction phrase
-      const secondCallPrompt = mockGenerateContent.mock.calls[1][0];
+      // In Groq, the prompt is passed inside messages array: [{ role: "user", content: "..." }]
+      const secondCallArgs = mockGenerateContent.mock.calls[1][0];
+      const secondCallPrompt = secondCallArgs.messages[0].content;
       expect(secondCallPrompt).toContain("IMPORTANT CORRECTION:");
 
       expect(res.ok).toBe(true);
@@ -59,11 +62,11 @@ describe("LLM Generation Layer", () => {
     it("should return MALFORMED_JSON if it fails both attempts", async () => {
       // 1st attempt: bad JSON
       mockGenerateContent.mockResolvedValueOnce({
-        response: { text: () => "{ bad" }
+        choices: [{ message: { content: "{ bad" } }]
       });
       // 2nd attempt: bad JSON
       mockGenerateContent.mockResolvedValueOnce({
-        response: { text: () => "{ still bad" }
+        choices: [{ message: { content: "{ still bad" } }]
       });
 
       const res = await callLlm("test prompt", DummySchema);
@@ -86,7 +89,7 @@ describe("LLM Generation Layer", () => {
       
       // 2nd attempt: Success
       mockGenerateContent.mockResolvedValueOnce({
-        response: { text: () => '{"foo": "success"}' }
+        choices: [{ message: { content: '{"foo": "success"}' } }]
       });
 
       const res = await callLlm("test prompt", DummySchema);
@@ -104,14 +107,14 @@ describe("LLM Generation Layer", () => {
   describe("Pipeline Steps", () => {
     it("extractRequirements should not invent requirements for a thin JD", async () => {
       mockGenerateContent.mockResolvedValueOnce({
-        response: { text: () => '[{"id": "r1", "text": "Basic JS", "kind": "technical", "priority": "must"}]' }
+        choices: [{ message: { content: '[{"id": "r1", "text": "Basic JS", "kind": "technical", "priority": "must"}]' } }]
       });
 
       const res = await extractRequirements("Just looking for someone who knows basic JS.");
 
       expect(mockGenerateContent).toHaveBeenCalledTimes(1);
       
-      const promptPassed = mockGenerateContent.mock.calls[0][0];
+      const promptPassed = mockGenerateContent.mock.calls[0][0].messages[0].content;
       expect(promptPassed).toContain("DO NOT invent or infer requirements");
       expect(promptPassed).toContain("Just looking for someone who knows basic JS.");
 
