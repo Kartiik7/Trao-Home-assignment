@@ -1,0 +1,22 @@
+{
+  "name": "ai-interview-prep-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Interview Prep Kit — full-stack monorepo",
+  "workspaces": [
+    "shared/types",
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "build:client": "npm run build --workspace=client",
+    "build:server": "npm run build --workspace=server",
+    "build:types": "npm run build --workspace=@ai-interview-prep/types"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
