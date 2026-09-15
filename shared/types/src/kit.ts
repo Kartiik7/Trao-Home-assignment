@@ -1,6 +1,11 @@
 // ─── Appendix A: Kit Structure ───
 // Field names match the assignment JSON exactly.
 
+export interface ItemMeta {
+  origin: "generated" | "edited" | "manual";
+  pinned: boolean;
+}
+
 /** Source metadata about the job posting and research. */
 export interface Source {
   company: string;
@@ -17,6 +22,7 @@ export interface CompanyBrief {
   summary: string;
   what_they_do: string;
   sources: string[];
+  _meta?: ItemMeta; // Added in Phase 6 for provenance tracking
 }
 
 /** A single requirement extracted from the job description. */
@@ -43,6 +49,7 @@ export interface Question {
   prompt: string;
   answer_outline: string;
   difficulty: number;
+  _meta?: ItemMeta; // Added in Phase 6 for provenance tracking
 }
 
 /** A flashcard for quick revision. */
@@ -51,6 +58,7 @@ export interface Flashcard {
   front: string;
   back: string;
   requirement_ids: string[];
+  _meta?: ItemMeta; // Added in Phase 6 for provenance tracking
 }
 
 /** A single day in the study schedule. */

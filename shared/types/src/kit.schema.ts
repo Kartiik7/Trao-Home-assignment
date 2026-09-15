@@ -3,6 +3,11 @@ import type { Kit } from "./kit";
 
 // ─── Zod Schemas mirroring kit.ts interfaces ───
 
+export const ItemMetaSchema = z.object({
+  origin: z.enum(["generated", "edited", "manual"]),
+  pinned: z.boolean(),
+});
+
 export const SourceSchema = z.object({
   company: z.string(),
   company_url: z.string(),
@@ -17,6 +22,7 @@ export const CompanyBriefSchema = z.object({
   summary: z.string(),
   what_they_do: z.string(),
   sources: z.array(z.string()),
+  _meta: ItemMetaSchema.optional(),
 });
 
 export const RequirementSchema = z.object({
@@ -40,6 +46,7 @@ export const QuestionSchema = z.object({
   prompt: z.string(),
   answer_outline: z.string(),
   difficulty: z.number(),
+  _meta: ItemMetaSchema.optional(),
 });
 
 export const FlashcardSchema = z.object({
@@ -47,6 +54,7 @@ export const FlashcardSchema = z.object({
   front: z.string(),
   back: z.string(),
   requirement_ids: z.array(z.string()),
+  _meta: ItemMetaSchema.optional(),
 });
 
 export const ScheduleDaySchema = z.object({

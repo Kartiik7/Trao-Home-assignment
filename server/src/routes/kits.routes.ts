@@ -4,6 +4,12 @@ import crypto from "crypto";
 import { requireAuth } from "../middleware/requireAuth";
 import { Kit } from "../models/Kit";
 import { runPipelineAsync } from "../services/pipeline.service";
+import { validateKit, type Kit as IKit } from "@ai-interview-prep/types";
+import { allocateSchedule } from "../planning/scheduler";
+import { mergeRegeneratedSection } from "../planning/merge";
+import { researchCompany } from "../retrieval/index";
+import { generateCompanyBrief, generateQuestionsForRequirement } from "../generation/index";
+import { runCoveragePassLoop } from "../planning/index";
 
 const router = Router();
 
@@ -140,6 +146,183 @@ router.get("/:id/status", async (req, res) => {
     res.json({ status: kit.status, error: kit.error });
   } catch (err) {
     console.error("[GET /kits/:id/status]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Phase 6: Editing and Regeneration ───
+
+/**
+ * Helper: deep compares text fields to auto-pin edited generated items.
+ */
+function pinEditedItems(originalItems: any[], updatedItems: any[]) {
+  return updatedItems.map(updated => {
+    // If it's explicitly manual, just pin it
+    if (updated._meta?.origin === "manual") {
+      updated._meta.pinned = true;
+      return updated;
+    }
+
+    const orig = originalItems.find(o => o.id === updated.id);
+    if (!orig) {
+      // Must be new (but not marked manual? assume manual)
+      updated._meta = { origin: "manual", pinned: true };
+      return updated;
+    }
+
+    if (orig._meta?.origin === "generated") {
+      // Compare stringified versions of core fields (cheap deep equal for text)
+      const oCopy = { ...orig, _meta: undefined };
+      const uCopy = { ...updated, _meta: undefined };
+      if (JSON.stringify(oCopy) !== JSON.stringify(uCopy)) {
+        updated._meta = { origin: "edited", pinned: true };
+      }
+    }
+    return updated;
+  });
+}
+
+/**
+ * PATCH /kits/:id
+ * Partially updates a kit, auto-pins edited items, and recalculates schedule.
+ */
+router.patch("/:id", async (req, res) => {
+  try {
+    const kitDoc = await Kit.findOne({ _id: req.params.id, userId: req.userId });
+    if (!kitDoc || kitDoc.status !== "ready" || !kitDoc.kit_data) {
+      res.status(404).json({ error: "Kit not found or not ready" });
+      return;
+    }
+
+    const updates: Partial<IKit> = req.body;
+    let kitData = kitDoc.kit_data as any; // Cast for flexibility before strict Zod check
+
+    if (updates.company_brief) {
+      const orig = kitData.company_brief;
+      const upd = updates.company_brief;
+      if (orig._meta?.origin === "generated") {
+        if (orig.summary !== upd.summary || orig.what_they_do !== upd.what_they_do) {
+          upd._meta = { origin: "edited", pinned: true };
+        }
+      } else if (upd._meta?.origin === "manual") {
+        upd._meta.pinned = true;
+      }
+      kitData.company_brief = upd;
+    }
+
+    if (updates.questions) {
+      kitData.questions = pinEditedItems(kitData.questions, updates.questions);
+      // Re-run schedule since questions changed
+      kitData.schedule = allocateSchedule(
+        kitData.role.requirements, 
+        kitData.questions, 
+        kitDoc.inputs.days
+      );
+    }
+
+    if (updates.flashcards) {
+      kitData.flashcards = pinEditedItems(kitData.flashcards, updates.flashcards);
+    }
+
+    // Validate structure after edits
+    const valResult = validateKit(kitData);
+    if (!valResult.success) {
+      res.status(400).json({ error: "Invalid kit structure", details: valResult.errors });
+      return;
+    }
+
+    kitDoc.kit_data = valResult.data;
+    await kitDoc.save();
+    res.json({ kit: kitDoc });
+
+  } catch (err) {
+    console.error("[PATCH /kits/:id]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+const RegenerateInputSchema = z.object({
+  section: z.enum(["company_brief", "questions", "schedule"]),
+  category: z.enum(["technical", "behavioural", "system-design", "company-fit"]).optional(),
+});
+
+/**
+ * POST /kits/:id/regenerate
+ * Selectively regenerates parts of the kit.
+ */
+router.post("/:id/regenerate", async (req, res) => {
+  try {
+    const kitDoc = await Kit.findOne({ _id: req.params.id, userId: req.userId });
+    if (!kitDoc || kitDoc.status !== "ready" || !kitDoc.kit_data) {
+      res.status(404).json({ error: "Kit not found or not ready" });
+      return;
+    }
+
+    const parsed = RegenerateInputSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input", details: parsed.error });
+      return;
+    }
+
+    const { section, category } = parsed.data;
+    let kitData = kitDoc.kit_data as IKit;
+
+    if (section === "company_brief") {
+      if (kitData.company_brief._meta?.pinned) {
+        res.status(400).json({ error: "Cannot regenerate a pinned company brief." });
+        return;
+      }
+
+      // Re-run generation
+      const research = await researchCompany(kitDoc.inputs.company_url, kitData.source.company);
+      const briefRes = await generateCompanyBrief(research.pages);
+      if (!briefRes.ok) {
+        res.status(500).json({ error: "Failed to regenerate brief", reason: briefRes.reason });
+        return;
+      }
+      
+      const newBrief = { ...briefRes.data, _meta: { origin: "generated" as const, pinned: false } };
+      kitData = mergeRegeneratedSection(kitData, { company_brief: newBrief }, { type: "company_brief" });
+    }
+
+    if (section === "questions") {
+      // 1. Discard unpinned questions in the target category by running an empty merge first
+      kitData = mergeRegeneratedSection(kitData, { questions: [] }, { type: "questions", category });
+      
+      // 2. Identify missing coverage
+      const context = kitData.company_brief.what_they_do; // approximate context for LLM
+      const draft = {
+        requirements: kitData.role.requirements,
+        brief: kitData.company_brief,
+        questions: kitData.questions,
+        flashcards: kitData.flashcards,
+      };
+
+      // 3. Re-run coverage loop to fill gaps
+      const updatedDraft = await runCoveragePassLoop(draft, context, generateQuestionsForRequirement, 3);
+      kitData.questions = updatedDraft.questions;
+
+      // 4. Update Schedule
+      kitData.schedule = allocateSchedule(kitData.role.requirements, kitData.questions, kitDoc.inputs.days);
+    }
+
+    if (section === "schedule") {
+      kitData.schedule = allocateSchedule(kitData.role.requirements, kitData.questions, kitDoc.inputs.days);
+    }
+
+    // Validate and save
+    const valResult = validateKit(kitData);
+    if (!valResult.success) {
+      res.status(500).json({ error: "Regeneration produced invalid structure", details: valResult.errors });
+      return;
+    }
+
+    kitDoc.kit_data = valResult.data;
+    await kitDoc.save();
+
+    res.json({ kit: kitDoc });
+  } catch (err) {
+    console.error("[POST /kits/:id/regenerate]", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

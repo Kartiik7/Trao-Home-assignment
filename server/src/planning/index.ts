@@ -33,7 +33,10 @@ export async function runCoveragePassLoop(
       
       const res = await generateQuestionsForRequirement(req, hiringProcessContext);
       if (res.ok) {
-        return res.data;
+        return res.data.map(q => ({
+          ...q,
+          _meta: { origin: "generated" as const, pinned: false }
+        }));
       }
       return [];
     });

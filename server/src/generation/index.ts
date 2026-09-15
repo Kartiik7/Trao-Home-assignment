@@ -58,7 +58,7 @@ export async function generateKitDraft(
   log.push({ step: "generateCompanyBrief", success: true });
 
   const requirements = reqRes.data;
-  const brief = briefRes.data;
+  const brief = reqRes.data ? { ...briefRes.data, _meta: { origin: "generated" as const, pinned: false } } : briefRes.data;
 
   // Compile hiring process context from search discussion
   const hiringProcessContext = research.discussion
@@ -71,7 +71,8 @@ export async function generateKitDraft(
   const qPromises = requirements.map(async (req) => {
     const qRes = await generateQuestionsForRequirement(req, hiringProcessContext);
     if (qRes.ok) {
-      questions.push(...qRes.data);
+      const withMeta = qRes.data.map(q => ({ ...q, _meta: { origin: "generated" as const, pinned: false } }));
+      questions.push(...withMeta);
       log.push({ step: `generateQuestions_${req.id}`, success: true });
     } else {
       log.push({ step: `generateQuestions_${req.id}`, success: false, reason: qRes.reason });
@@ -84,7 +85,7 @@ export async function generateKitDraft(
   const flashRes = await generateFlashcards(requirements, questions);
   let flashcards: Flashcard[] = [];
   if (flashRes.ok) {
-    flashcards = flashRes.data;
+    flashcards = flashRes.data.map(f => ({ ...f, _meta: { origin: "generated" as const, pinned: false } }));
     log.push({ step: "generateFlashcards", success: true });
   } else {
     log.push({ step: "generateFlashcards", success: false, reason: flashRes.reason });
