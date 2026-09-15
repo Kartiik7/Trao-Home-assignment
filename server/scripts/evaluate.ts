@@ -4,14 +4,14 @@
  * Batch evaluation CLI.
  * Usage: npm run evaluate -- --input <cases.json> --output <kits.json>
  *
- * For now this is a stub that:
- *  1. Reads the input JSON array
- *  2. Validates each case has { id, jd, company_url, days }
- *  3. Writes a stub output file matching the Appendix B shape
+ * Refactored in Phase 5 to use the real deterministic pipeline core logic.
  */
 
 import * as fs from "fs";
 import * as path from "path";
+import dotenv from "dotenv";
+dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
+
 import {
   BatchInputSchema,
   type BatchInputCase,
@@ -19,6 +19,8 @@ import {
   type BatchOutputKit,
   type Kit,
 } from "@ai-interview-prep/types";
+
+import { executePipelineCore } from "../src/services/pipeline.service";
 
 // ─── CLI Arg Parsing ───
 
@@ -43,46 +45,9 @@ function parseArgs(): { input: string; output: string } {
   return { input, output };
 }
 
-// ─── Stub Kit Factory ───
-
-function createEmptyKit(): Kit {
-  return {
-    source: {
-      company: "",
-      company_url: "",
-      role: "",
-      location: "",
-      jd_chars: 0,
-      researched_at: new Date().toISOString(),
-      pages_used: [],
-    },
-    company_brief: {
-      summary: "",
-      what_they_do: "",
-      sources: [],
-    },
-    role: {
-      title: "",
-      seniority: "",
-      responsibilities: [],
-      requirements: [],
-    },
-    questions: [],
-    flashcards: [],
-    schedule: {
-      days_available: 0,
-      days: [],
-    },
-    coverage: {
-      uncovered_requirement_ids: [],
-      passes: 0,
-    },
-  };
-}
-
 // ─── Main ───
 
-function main() {
+async function main() {
   const { input, output } = parseArgs();
 
   // Read input file
@@ -112,13 +77,34 @@ function main() {
 
   console.log(`📥 Read ${cases.length} case(s) from ${inputPath}`);
 
-  // Generate stub output
-  const kits: BatchOutputKit[] = cases.map((c) => ({
-    id: c.id,
-    status: "ok" as const,
-    kit: createEmptyKit(),
-    error: null,
-  }));
+  const kits: BatchOutputKit[] = [];
+
+  // Process each case sequentially
+  for (let i = 0; i < cases.length; i++) {
+    const c = cases[i];
+    console.log(`\n⏳ Processing case ${i + 1}/${cases.length} (ID: ${c.id})...`);
+    
+    // We execute the isolated core logic directly, not via HTTP or MongoDB
+    const result = await executePipelineCore(c.jd, c.company_url, c.days);
+
+    if (result.ok) {
+      console.log(`✅ Case ${c.id} generated successfully.`);
+      kits.push({
+        id: c.id,
+        status: "ok",
+        kit: result.kit,
+        error: null,
+      });
+    } else {
+      console.error(`❌ Case ${c.id} failed:`, result.error);
+      kits.push({
+        id: c.id,
+        status: "failed",
+        kit: null,
+        error: result.error,
+      });
+    }
+  }
 
   const batchOutput: BatchOutput = {
     version: "1.0",
@@ -129,7 +115,10 @@ function main() {
   // Write output file
   const outputPath = path.resolve(output);
   fs.writeFileSync(outputPath, JSON.stringify(batchOutput, null, 2), "utf-8");
-  console.log(`📤 Wrote ${kits.length} kit(s) to ${outputPath}`);
+  console.log(`\n📤 Wrote ${kits.length} kit(s) to ${outputPath}`);
 }
 
-main();
+main().catch((err) => {
+  console.error("Fatal error in batch script:", err);
+  process.exit(1);
+});

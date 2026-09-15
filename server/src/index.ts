@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { connectDB } from "./db";
 import authRouter from "./routes/auth.routes";
+import kitsRouter from "./routes/kits.routes";
 
 // Load environment variables from server/.env (resolve relative to this file, not cwd)
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
@@ -36,6 +37,9 @@ app.get("/health", (_req, res) => {
 
 /** Auth routes. */
 app.use("/auth", authRouter);
+
+/** Kits routes (generation and fetching) */
+app.use("/kits", kitsRouter);
 
 // ─── Start Server ───
 
