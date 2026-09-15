@@ -1,10 +1,11 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 import { connectDB } from "./db";
 
-// Load environment variables from .env
-dotenv.config();
+// Load environment variables from server/.env (resolve relative to this file, not cwd)
+dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);

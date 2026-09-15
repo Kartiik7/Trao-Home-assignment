@@ -1,0 +1,14 @@
+[
+  {
+    "id": "case-01",
+    "jd": "Senior Backend Engineer\n\nWe are looking for an experienced backend engineer to join our platform team. Requirements:\n- 5+ years with Node.js and TypeScript\n- Experience with MongoDB and Redis\n- Strong system design skills\n- Familiarity with CI/CD pipelines",
+    "company_url": "http://localhost:8099/acme/",
+    "days": 5
+  },
+  {
+    "id": "case-02",
+    "jd": "Frontend Developer\n\nJoin our team building modern web applications.\n- 3+ years with React and Next.js\n- Strong CSS/Tailwind skills\n- Experience with state management (Redux, Zustand)\n- Unit testing with Jest and React Testing Library",
+    "company_url": "http://localhost:8099/betacorp/",
+    "days": 3
+  }
+]
