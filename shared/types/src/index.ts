@@ -46,3 +46,9 @@ export {
   BatchOutputKitSchema,
   BatchOutputSchema,
 } from "./batch.schema";
+
+// Auth types (user, login, register)
+export type { AuthUser, RegisterInput, LoginInput } from "./auth";
+
+// Auth Zod schemas
+export { RegisterInputSchema, LoginInputSchema } from "./auth";

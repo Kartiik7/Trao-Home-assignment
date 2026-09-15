@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-09-15T07:07:01.700Z",
+  "kits": [
+    {
+      "id": "case-01",
+      "status": "ok",
+      "kit": {
+        "source": {
+          "company": "",
+          "company_url": "",
+          "role": "",
+          "location": "",
+          "jd_chars": 0,
+          "researched_at": "2026-09-15T07:07:01.700Z",
+          "pages_used": []
+        },
+        "company_brief": {
+          "summary": "",
+          "what_they_do": "",
+          "sources": []
+        },
+        "role": {
+          "title": "",
+          "seniority": "",
+          "responsibilities": [],
+          "requirements": []
+        },
+        "questions": [],
+        "flashcards": [],
+        "schedule": {
+          "days_available": 0,
+          "days": []
+        },
+        "coverage": {
+          "uncovered_requirement_ids": [],
+          "passes": 0
+        }
+      },
+      "error": null
+    },
+    {
+      "id": "case-02",
+      "status": "ok",
+      "kit": {
+        "source": {
+          "company": "",
+          "company_url": "",
+          "role": "",
+          "location": "",
+          "jd_chars": 0,
+          "researched_at": "2026-09-15T07:07:01.700Z",
+          "pages_used": []
+        },
+        "company_brief": {
+          "summary": "",
+          "what_they_do": "",
+          "sources": []
+        },
+        "role": {
+          "title": "",
+          "seniority": "",
+          "responsibilities": [],
+          "requirements": []
+        },
+        "questions": [],
+        "flashcards": [],
+        "schedule": {
+          "days_available": 0,
+          "days": []
+        },
+        "coverage": {
+          "uncovered_requirement_ids": [],
+          "passes": 0
+        }
+      },
+      "error": null
+    }
+  ]
+}
