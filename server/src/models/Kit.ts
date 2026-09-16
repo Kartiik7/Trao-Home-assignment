@@ -39,7 +39,7 @@ const KitSchema = new Schema<IKitDoc>(
       code: { type: String },
       message: { type: String },
     },
-    generation_log: { type: [Schema.Types.Mixed], default: [] },
+    generation_log: { type: Schema.Types.Mixed, default: [] },
     kit_data: { type: Schema.Types.Mixed },
   },
   { timestamps: true }
@@ -47,10 +47,11 @@ const KitSchema = new Schema<IKitDoc>(
 
 // Pre-validate hook to automatically generate jdHash
 KitSchema.pre("validate", function (next) {
-  if (this.inputs && this.inputs.jd && !this.inputs.jdHash) {
-    this.inputs.jdHash = crypto
+  const doc = this as any;
+  if (doc.inputs && doc.inputs.jd && !doc.inputs.jdHash) {
+    doc.inputs.jdHash = crypto
       .createHash("sha256")
-      .update(this.inputs.jd)
+      .update(doc.inputs.jd)
       .digest("hex");
   }
   next();

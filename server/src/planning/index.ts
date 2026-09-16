@@ -1,6 +1,7 @@
 import { checkCoverage } from "./coverage";
 import type { KitDraft } from "../generation/index";
-import type { Requirement, Question, LlmResult } from "../generation/llmClient";
+import type { Requirement, Question } from "../generation/steps";
+import type { LlmResult } from "../generation/llmClient";
 
 type GenerateQuestionsFn = (
   requirement: Requirement,

@@ -101,3 +101,6 @@ export async function generateKitDraft(
     log
   };
 }
+
+// Re-export for use by other modules (pipeline, routes)
+export { generateQuestionsForRequirement, generateCompanyBrief };

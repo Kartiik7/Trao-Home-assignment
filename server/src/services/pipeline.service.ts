@@ -46,9 +46,22 @@ export async function executePipelineCore(
     );
 
     const finalKit = {
-      source: coveredDraft.source,
-      company_brief: coveredDraft.company_brief,
-      role: coveredDraft.role,
+      source: {
+        company,
+        company_url,
+        role: (coveredDraft as any).role?.title || "Engineer",
+        location: "Not specified",
+        jd_chars: jd.length,
+        researched_at: new Date().toISOString(),
+        pages_used: research.pages.map(p => p.url),
+      },
+      company_brief: coveredDraft.brief,
+      role: {
+        title: (coveredDraft as any).role?.title || company + " Engineer",
+        seniority: (coveredDraft as any).role?.seniority || "Mid-level",
+        responsibilities: (coveredDraft as any).role?.responsibilities || [],
+        requirements: coveredDraft.requirements,
+      },
       questions: coveredDraft.questions,
       flashcards: coveredDraft.flashcards,
       schedule,
