@@ -1,7 +1,5 @@
-import dotenv from "dotenv";
+import "../src/env";
 import path from "path";
-// Load env vars so we have GROQ_API_KEY and TAVILY_API_KEY
-dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 import { researchCompany } from "../src/retrieval";
 import { generateKitDraft } from "../src/generation";

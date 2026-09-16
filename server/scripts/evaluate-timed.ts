@@ -9,11 +9,9 @@
  * Usage: npm run evaluate:timed
  */
 
+import "../src/env";
 import * as fs from "fs";
 import * as path from "path";
-import dotenv from "dotenv";
-dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
-
 import { BatchInputSchema, type BatchInputCase } from "@ai-interview-prep/types";
 import { executePipelineCore } from "../src/services/pipeline.service";
 

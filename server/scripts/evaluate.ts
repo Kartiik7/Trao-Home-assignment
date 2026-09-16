@@ -7,11 +7,9 @@
  * Refactored in Phase 5 to use the real deterministic pipeline core logic.
  */
 
+import "../src/env";
 import * as fs from "fs";
 import * as path from "path";
-import dotenv from "dotenv";
-dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
-
 import {
   BatchInputSchema,
   type BatchInputCase,
