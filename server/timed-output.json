@@ -1,46 +1,46 @@
 {
-  "run_at": "2026-09-16T12:37:09.599Z",
+  "run_at": "2026-09-16T12:59:40.697Z",
   "total_cases": 5,
   "passed": 0,
   "failed": 5,
-  "total_time": "29.0s",
-  "total_ms": 29019,
-  "avg_ms": 5804,
+  "total_time": "20.8s",
+  "total_ms": 20830,
+  "avg_ms": 4166,
   "cases": [
     {
       "id": "case-01-normal",
       "status": "failed",
       "error": "[GENERATION_FAILED] Failed to generate initial draft",
-      "elapsed_ms": 6705,
-      "elapsed": "6.7s"
+      "elapsed_ms": 7035,
+      "elapsed": "7.0s"
     },
     {
       "id": "case-02-thin-jd",
       "status": "failed",
       "error": "[GENERATION_FAILED] Failed to generate initial draft",
-      "elapsed_ms": 6976,
-      "elapsed": "7.0s"
+      "elapsed_ms": 5059,
+      "elapsed": "5.1s"
     },
     {
       "id": "case-03-unreachable-url",
       "status": "failed",
       "error": "[GENERATION_FAILED] Failed to generate initial draft",
-      "elapsed_ms": 4240,
-      "elapsed": "4.2s"
+      "elapsed_ms": 357,
+      "elapsed": "0.4s"
     },
     {
       "id": "case-04-no-hiring-page",
       "status": "failed",
       "error": "[GENERATION_FAILED] Failed to generate initial draft",
-      "elapsed_ms": 4415,
-      "elapsed": "4.4s"
+      "elapsed_ms": 2145,
+      "elapsed": "2.1s"
     },
     {
       "id": "case-05-duplicate",
       "status": "failed",
       "error": "[GENERATION_FAILED] Failed to generate initial draft",
-      "elapsed_ms": 6682,
-      "elapsed": "6.7s"
+      "elapsed_ms": 6234,
+      "elapsed": "6.2s"
     }
   ]
 }
