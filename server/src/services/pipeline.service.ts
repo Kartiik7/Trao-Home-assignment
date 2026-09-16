@@ -56,7 +56,7 @@ export async function executePipelineCore(
     };
 
     const validationResult = validateKit(finalKit);
-    if (!validationResult.success) {
+    if (!validationResult.valid) {
       log.push({ step: "validation", success: false, reason: JSON.stringify(validationResult.errors) });
       return { ok: false, error: { code: "VALIDATION_FAILED", message: "Generated kit failed Zod schema validation." }, log };
     }

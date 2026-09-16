@@ -263,7 +263,7 @@ router.patch("/:id", async (req, res) => {
 
     // Validate structure after edits
     const valResult = validateKit(kitData);
-    if (!valResult.success) {
+    if (!valResult.valid) {
       res.status(400).json({ error: "Invalid kit structure", details: valResult.errors });
       return;
     }
@@ -349,7 +349,7 @@ router.post("/:id/regenerate", async (req, res) => {
 
     // Validate and save
     const valResult = validateKit(kitData);
-    if (!valResult.success) {
+    if (!valResult.valid) {
       res.status(500).json({ error: "Regeneration produced invalid structure", details: valResult.errors });
       return;
     }

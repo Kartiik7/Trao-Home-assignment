@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Plus, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 async function getKits() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token) {
