@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuth } from "@/lib/auth-context";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
@@ -30,24 +32,27 @@ export default function Home() {
         </div>
 
         {user && (
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-6">
             <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
               Signed in as <span className="font-medium text-zinc-900 dark:text-zinc-100">{user.email}</span>
             </div>
+            
+            <Link 
+              href="/kits" 
+              className="flex items-center gap-2 rounded-xl bg-black px-8 py-4 text-lg font-semibold text-white shadow-md hover:bg-zinc-800 transition-colors"
+            >
+              Go to Dashboard <ArrowRight size={20} />
+            </Link>
+
             <button
               onClick={logout}
-              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 mt-8"
             >
               Sign out
             </button>
           </div>
         )}
-
-        <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          Auth ready — retrieval &amp; LLM phases coming soon
-        </div>
       </main>
     </div>
   );

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import KitBuilder from "../../../components/builder/KitBuilder";
 import { cookies } from "next/headers";
+import KitLoaderWrapper from "./KitLoaderWrapper";
 
 async function getKit(id: string) {
   const cookieStore = cookies();
@@ -10,10 +10,7 @@ async function getKit(id: string) {
 
   try {
     const res = await fetch(`http://localhost:5000/kits/${id}`, {
-      headers: {
-        Cookie: `token=${token}`,
-      },
-      // In Next.js App Router, SSR fetching with dynamic cookies
+      headers: { Cookie: `token=${token}` },
       cache: "no-store", 
     });
 
@@ -37,25 +34,10 @@ export default async function KitPage({ params }: { params: { id: string } }) {
     notFound();
   }
 
-  if (kitDoc.status !== "ready") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center p-6 space-y-4">
-        <h1 className="text-3xl font-bold">Kit is generating...</h1>
-        <p className="text-gray-500">Your interview prep kit is being built. This takes about 90 seconds.</p>
-        {/* Real app would poll or use websockets here */}
-        <a 
-          href={`/kits/${params.id}`}
-          className="mt-4 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800"
-        >
-          Refresh Page
-        </a>
-      </div>
-    );
-  }
-
+  // Delegate entirely to a Client Component to handle optimistic swaps
   return (
     <main className="min-h-screen bg-gray-50 pt-8 pb-20">
-      <KitBuilder initialKit={kitDoc.kit_data} kitId={kitDoc._id} />
+      <KitLoaderWrapper initialKitDoc={kitDoc} kitId={params.id} />
     </main>
   );
 }

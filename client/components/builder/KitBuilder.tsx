@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { Kit, Question, ItemMeta } from "@ai-interview-prep/types";
-import { Pin, Sparkles, Pencil, Hand, Play } from "lucide-react";
+import { Pin, Sparkles, Pencil, Hand, Play, ArrowLeft } from "lucide-react";
 import QuestionsSection from "./QuestionsSection";
 import CompanyBriefSection from "./CompanyBriefSection";
 import Link from "next/link";
@@ -46,6 +46,9 @@ export default function KitBuilder({ initialKit, kitId }: { initialKit: Kit; kit
     <div className="max-w-5xl mx-auto p-6 space-y-8">
       <div className="flex justify-between items-end border-b pb-4">
         <div>
+          <Link href="/kits" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black mb-4 font-medium transition-colors">
+            <ArrowLeft size={16} /> Back to Dashboard
+          </Link>
           <h1 className="text-3xl font-bold tracking-tight">{kit.role.title}</h1>
           <p className="text-gray-500">{kit.source.company}</p>
         </div>

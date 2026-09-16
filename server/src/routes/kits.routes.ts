@@ -152,6 +152,41 @@ router.get("/:id/status", async (req, res) => {
   }
 });
 
+/**
+ * POST /kits/:id/retry
+ * Retries a failed kit generation by bypassing deduplication and re-running the worker.
+ */
+router.post("/:id/retry", async (req, res) => {
+  try {
+    const kit = await Kit.findOne({ _id: req.params.id, userId: req.userId });
+    
+    if (!kit) {
+      res.status(404).json({ error: "Kit not found" });
+      return;
+    }
+
+    if (kit.status !== "failed") {
+      res.status(400).json({ error: "Only failed kits can be retried." });
+      return;
+    }
+
+    // Reset state
+    kit.status = "pending";
+    kit.error = undefined;
+    await kit.save();
+
+    // Fire and forget pipeline worker on existing doc
+    runPipelineAsync(kit._id.toString()).catch((err) => {
+      console.error("[Fatal Worker Error on Retry]", err);
+    });
+
+    res.json({ message: "Retry started", status: "pending" });
+  } catch (err) {
+    console.error("[POST /kits/:id/retry]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ─── Phase 6: Editing and Regeneration ───
 
 /**
