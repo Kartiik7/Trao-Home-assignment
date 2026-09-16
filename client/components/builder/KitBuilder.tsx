@@ -6,6 +6,7 @@ import { Pin, Sparkles, Pencil, Hand, Play, ArrowLeft } from "lucide-react";
 import QuestionsSection from "./QuestionsSection";
 import CompanyBriefSection from "./CompanyBriefSection";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 
 export default function KitBuilder({ initialKit, kitId }: { initialKit: Kit; kitId: string }) {
   const [kit, setKit] = useState<Kit>(initialKit);
@@ -23,19 +24,14 @@ export default function KitBuilder({ initialKit, kitId }: { initialKit: Kit; kit
     setIsPatching(true);
     patchTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`http://localhost:5000/kits/${kitId}`, {
+        const data = await apiFetch<{ kit: any }>(`/kits/${kitId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updates),
         });
-        
-        if (!res.ok) throw new Error("Failed to patch kit");
-        const data = await res.json();
         // Overwrite with server truth (pins might have been auto-added)
         setKit(data.kit.kit_data);
       } catch (err) {
         console.error("Patch failed, rollback would happen here", err);
-        // Simple rollback mechanism not fully robust for multi-edits in real prod, but works for assignment
       } finally {
         setIsPatching(false);
       }

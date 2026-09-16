@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Kit, CompanyBrief } from "@ai-interview-prep/types";
 import { MetaBadge } from "./KitBuilder";
 import { RefreshCw } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 export default function CompanyBriefSection({
   kit,
@@ -22,16 +23,10 @@ export default function CompanyBriefSection({
   const handleRegenerate = async () => {
     setIsRegenerating(true);
     try {
-      const res = await fetch(`http://localhost:5000/kits/${kitId}/regenerate`, {
+      const data = await apiFetch<{ kit: any }>(`/kits/${kitId}/regenerate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ section: "company_brief" }),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Regeneration failed");
-      }
-      const data = await res.json();
       onKitMerged(data.kit.kit_data);
     } catch (err: any) {
       alert(err.message || "Failed to regenerate brief.");

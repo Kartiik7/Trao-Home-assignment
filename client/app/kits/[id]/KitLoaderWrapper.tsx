@@ -4,15 +4,13 @@ import { useState, useEffect } from "react";
 import KitBuilder from "../../../components/builder/KitBuilder";
 import { Loader2, AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/lib/auth-context";
+import { apiFetch } from "@/lib/api";
 
 export default function KitLoaderWrapper({ initialKitDoc, kitId }: { initialKitDoc: any, kitId: string }) {
   const [kitDoc, setKitDoc] = useState(initialKitDoc);
   const [status, setStatus] = useState(initialKitDoc.status);
   const [errorMsg, setErrorMsg] = useState(initialKitDoc.error);
   const [isRetrying, setIsRetrying] = useState(false);
-  
-  const { token } = useAuth(); // or grab from cookies if needed
 
   useEffect(() => {
     if (status === "ready" || status === "failed") return;
@@ -20,21 +18,14 @@ export default function KitLoaderWrapper({ initialKitDoc, kitId }: { initialKitD
     // Polling logic
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`http://localhost:5000/kits/${kitId}/status`);
-        if (res.ok) {
-          const data = await res.json();
-          setStatus(data.status);
-          
-          if (data.status === "failed") {
-            setErrorMsg(data.error);
-          } else if (data.status === "ready") {
-            // Fetch the full kit now that it's ready
-            const fullRes = await fetch(`http://localhost:5000/kits/${kitId}`);
-            if (fullRes.ok) {
-              const fullData = await fullRes.json();
-              setKitDoc(fullData.kit);
-            }
-          }
+        const data = await apiFetch<{ status: string; error?: any }>(`/kits/${kitId}/status`);
+        setStatus(data.status);
+        
+        if (data.status === "failed") {
+          setErrorMsg(data.error);
+        } else if (data.status === "ready") {
+          const fullData = await apiFetch<{ kit: any }>(`/kits/${kitId}`);
+          setKitDoc(fullData.kit);
         }
       } catch (err) {
         console.error("Polling error", err);
@@ -47,13 +38,9 @@ export default function KitLoaderWrapper({ initialKitDoc, kitId }: { initialKitD
   const handleRetry = async () => {
     setIsRetrying(true);
     try {
-      const res = await fetch(`http://localhost:5000/kits/${kitId}/retry`, {
-        method: "POST"
-      });
-      if (res.ok) {
-        setStatus("pending");
-        setErrorMsg(null);
-      }
+      await apiFetch(`/kits/${kitId}/retry`, { method: "POST" });
+      setStatus("pending");
+      setErrorMsg(null);
     } catch (err) {
       console.error(err);
     } finally {

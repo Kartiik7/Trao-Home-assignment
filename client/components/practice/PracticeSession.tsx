@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Flashcard } from "@ai-interview-prep/types";
 import { ArrowLeft, Brain, RotateCcw } from "lucide-react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 
 interface PracticeStats {
   total_cards: number;
@@ -51,10 +52,9 @@ export default function PracticeSession({
   const handleRate = useCallback(async (confidence: 1 | 2 | 3) => {
     const card = flashcards[currentIndex];
     
-    // Fire and forget POST to record progress
-    fetch(`http://localhost:5000/kits/${kitId}/practice`, {
+    // Fire and forget POST to record progress — auth cookie automatically included
+    apiFetch(`/kits/${kitId}/practice`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ flashcard_id: card.id, confidence }),
     }).catch(err => console.error("Failed to record rating", err));
 

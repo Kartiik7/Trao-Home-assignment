@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Upload, FileJson, Loader2 } from "lucide-react";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export default function CreateKitPage() {
   const router = useRouter();
@@ -25,18 +26,13 @@ export default function CreateKitPage() {
     setError(null);
 
     try {
-      const res = await fetch("http://localhost:5000/kits", {
+      const data = await apiFetch<{ kitId: string; status: string }>("/kits", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jd, company_url: companyUrl, days }),
       });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create kit");
-      
       router.push(`/kits/${data.kitId}`);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Failed to create kit");
       setIsSubmitting(false);
     }
   };
@@ -69,9 +65,8 @@ export default function CreateKitPage() {
       for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
         
-        await fetch("http://localhost:5000/kits", {
+        await apiFetch("/kits", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             jd: entry.jd,
             company_url: entry.company_url,
