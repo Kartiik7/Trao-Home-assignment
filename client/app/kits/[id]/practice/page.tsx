@@ -26,8 +26,9 @@ async function getPracticeData(id: string) {
   }
 }
 
-export default async function PracticePage({ params }: { params: { id: string } }) {
-  const data = await getPracticeData(params.id);
+export default async function PracticePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const data = await getPracticeData(id);
 
   if (!data) {
     notFound();
@@ -38,7 +39,7 @@ export default async function PracticePage({ params }: { params: { id: string } 
       <PracticeSession 
         flashcards={data.ordered_flashcards} 
         stats={data.stats} 
-        kitId={params.id} 
+        kitId={id} 
       />
     </main>
   );

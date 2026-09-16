@@ -27,8 +27,9 @@ async function getKit(id: string) {
   }
 }
 
-export default async function KitPage({ params }: { params: { id: string } }) {
-  const kitDoc = await getKit(params.id);
+export default async function KitPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const kitDoc = await getKit(id);
 
   if (!kitDoc) {
     notFound();
@@ -37,7 +38,7 @@ export default async function KitPage({ params }: { params: { id: string } }) {
   // Delegate entirely to a Client Component to handle optimistic swaps
   return (
     <main className="min-h-screen bg-gray-50 pt-8 pb-20">
-      <KitLoaderWrapper initialKitDoc={kitDoc} kitId={params.id} />
+      <KitLoaderWrapper initialKitDoc={kitDoc} kitId={id} />
     </main>
   );
 }
