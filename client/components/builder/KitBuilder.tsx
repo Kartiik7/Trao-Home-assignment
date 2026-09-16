@@ -2,9 +2,10 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { Kit, Question, ItemMeta } from "@ai-interview-prep/types";
-import { Pin, Sparkles, Pencil, Hand } from "lucide-react";
+import { Pin, Sparkles, Pencil, Hand, Play } from "lucide-react";
 import QuestionsSection from "./QuestionsSection";
 import CompanyBriefSection from "./CompanyBriefSection";
+import Link from "next/link";
 
 export default function KitBuilder({ initialKit, kitId }: { initialKit: Kit; kitId: string }) {
   const [kit, setKit] = useState<Kit>(initialKit);
@@ -48,7 +49,15 @@ export default function KitBuilder({ initialKit, kitId }: { initialKit: Kit; kit
           <h1 className="text-3xl font-bold tracking-tight">{kit.role.title}</h1>
           <p className="text-gray-500">{kit.source.company}</p>
         </div>
-        {isPatching && <span className="text-sm text-gray-400 animate-pulse">Saving...</span>}
+        <div className="flex items-center gap-4">
+          {isPatching && <span className="text-sm text-gray-400 animate-pulse">Saving...</span>}
+          <Link 
+            href={`/kits/${kitId}/practice`}
+            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+          >
+            <Play size={16} /> Start Practice
+          </Link>
+        </div>
       </div>
 
       <section className="space-y-4">

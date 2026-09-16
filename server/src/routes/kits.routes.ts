@@ -10,6 +10,8 @@ import { mergeRegeneratedSection } from "../planning/merge";
 import { researchCompany } from "../retrieval/index";
 import { generateCompanyBrief, generateQuestionsForRequirement } from "../generation/index";
 import { runCoveragePassLoop } from "../planning/index";
+import { PracticeProgress } from "../models/PracticeProgress";
+import { orderPracticeSession } from "../planning/practice";
 
 const router = Router();
 
@@ -323,6 +325,89 @@ router.post("/:id/regenerate", async (req, res) => {
     res.json({ kit: kitDoc });
   } catch (err) {
     console.error("[POST /kits/:id/regenerate]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Phase 7: Practice Mode ───
+
+/**
+ * GET /kits/:id/practice
+ * Returns the ordered flashcards for the next session and stats.
+ */
+router.get("/:id/practice", async (req, res) => {
+  try {
+    const kitDoc = await Kit.findOne({ _id: req.params.id, userId: req.userId });
+    if (!kitDoc || kitDoc.status !== "ready" || !kitDoc.kit_data) {
+      res.status(404).json({ error: "Kit not found or not ready" });
+      return;
+    }
+
+    const flashcards = kitDoc.kit_data.flashcards;
+    
+    const records = await PracticeProgress.find({ 
+      userId: req.userId, 
+      kitId: kitDoc._id 
+    });
+
+    const ordered_flashcards = orderPracticeSession(flashcards, records);
+
+    const total_cards = flashcards.length;
+    const cards_seen = records.filter(r => r.times_seen > 0).length;
+    const cards_unseen = total_cards - cards_seen;
+    
+    let avg_confidence = 0;
+    if (cards_seen > 0) {
+      const sum = records.reduce((acc, r) => acc + (r.last_confidence || 0), 0);
+      avg_confidence = sum / cards_seen;
+    }
+
+    res.json({
+      ordered_flashcards,
+      stats: {
+        total_cards,
+        cards_seen,
+        cards_unseen,
+        average_confidence: avg_confidence
+      }
+    });
+
+  } catch (err) {
+    console.error("[GET /kits/:id/practice]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * POST /kits/:id/practice
+ * Records a confidence rating for a flashcard.
+ */
+router.post("/:id/practice", async (req, res) => {
+  try {
+    const { flashcard_id, confidence } = req.body;
+    
+    if (![1, 2, 3].includes(confidence) || !flashcard_id) {
+      res.status(400).json({ error: "Invalid confidence rating or missing flashcard_id." });
+      return;
+    }
+
+    // Upsert the progress record
+    await PracticeProgress.findOneAndUpdate(
+      { 
+        userId: req.userId, 
+        kitId: req.params.id, 
+        flashcard_id 
+      },
+      { 
+        $set: { last_confidence: confidence, last_seen_at: new Date() },
+        $inc: { times_seen: 1 }
+      },
+      { upsert: true, new: true }
+    );
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("[POST /kits/:id/practice]", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
