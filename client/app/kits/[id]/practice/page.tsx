@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import PracticeSession from "../../../../components/practice/PracticeSession";
 import { cookies } from "next/headers";
 
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 async function getPracticeData(id: string) {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
@@ -9,7 +11,7 @@ async function getPracticeData(id: string) {
   if (!token) return null;
 
   try {
-    const res = await fetch(`http://localhost:5000/kits/${id}/practice`, {
+    const res = await fetch(`${API_URL}/kits/${id}/practice`, {
       headers: { Cookie: `token=${token}` },
       cache: "no-store", 
     });

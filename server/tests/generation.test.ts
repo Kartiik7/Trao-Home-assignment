@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import { callLlm } from "../src/generation/llmClient";
+import { callLlm, isAuthConfigError } from "../src/generation/llmClient";
 import { extractRequirements } from "../src/generation/steps";
 
 const { mockGenerateContent } = vi.hoisted(() => {
@@ -101,6 +101,17 @@ describe("LLM Generation Layer", () => {
       }
 
       warnSpy.mockRestore();
+    });
+
+    it("should correctly identify auth config errors via isAuthConfigError", () => {
+      expect(isAuthConfigError("LLM_NETWORK_ERROR", "401 Unauthorized")).toBe(true);
+      expect(isAuthConfigError("LLM_NETWORK_ERROR", "invalid_api_key")).toBe(true);
+      expect(isAuthConfigError("LLM_NETWORK_ERROR", "Invalid API Key")).toBe(true);
+      expect(isAuthConfigError("LLM_NETWORK_ERROR", { error: "401 invalid_api_key" })).toBe(true);
+
+      expect(isAuthConfigError("LLM_NETWORK_ERROR", "Connection refused")).toBe(false);
+      expect(isAuthConfigError("MALFORMED_JSON", "401")).toBe(false);
+      expect(isAuthConfigError(undefined, undefined)).toBe(false);
     });
   });
 

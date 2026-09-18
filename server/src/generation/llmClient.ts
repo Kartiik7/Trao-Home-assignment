@@ -11,6 +11,13 @@ export type LlmResult<T> =
   | { ok: true; data: T }
   | { ok: false; reason: string; details?: any };
 
+/** True when an LLM_NETWORK_ERROR was actually a bad/missing API key, not a transient network issue. */
+export function isAuthConfigError(reason?: string, details?: unknown): boolean {
+  if (reason !== "LLM_NETWORK_ERROR") return false;
+  const msg = typeof details === "string" ? details : JSON.stringify(details ?? "");
+  return msg.includes("401") || msg.includes("invalid_api_key") || msg.includes("Invalid API Key");
+}
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**

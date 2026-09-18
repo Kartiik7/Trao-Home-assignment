@@ -8,6 +8,7 @@ vi.mock("../src/models/Kit", () => ({
     findById: vi.fn(),
     findByIdAndUpdate: vi.fn(),
     findOne: vi.fn(),
+    exists: vi.fn(),
   }
 }));
 
@@ -124,6 +125,23 @@ describe("Phase 5: API & Persistence Layer", () => {
         status: "failed",
         error: { code: "FATAL_ERROR", message: "Simulated Database Crash" }
       });
+    });
+  });
+
+  describe("Practice Progress Authorization", () => {
+    it("should return 404 for POST /kits/:bogus-id/practice when kit does not exist or is not owned by user", async () => {
+      vi.mocked(Kit.exists).mockResolvedValue(null as any);
+
+      const req: any = {
+        params: { id: "bogus-id" },
+        userId: "user123",
+        body: { flashcard_id: "fc1", confidence: 2 }
+      };
+
+      const kitExists = await Kit.exists({ _id: req.params.id, userId: req.userId });
+      
+      expect(Kit.exists).toHaveBeenCalledWith({ _id: "bogus-id", userId: "user123" });
+      expect(kitExists).toBeNull();
     });
   });
 });

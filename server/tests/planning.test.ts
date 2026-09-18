@@ -120,5 +120,26 @@ describe("Planning Layer", () => {
       expect(res.coverage.uncovered_requirement_ids).toHaveLength(0);
       expect(res.coverage.passes).toBe(1);
     });
+
+    it("should capture LLM failures in coverageFailures", async () => {
+      const kitDraft: any = {
+        requirements: [{ id: "r1", text: "Req 1", kind: "technical", priority: "must" }],
+        questions: []
+      };
+
+      const mockGenerate = vi.fn().mockResolvedValue({
+        ok: false,
+        reason: "LLM_NETWORK_ERROR",
+        details: "401 invalid_api_key"
+      });
+
+      const res: any = await runCoveragePassLoop(kitDraft, "context", mockGenerate, 1);
+
+      expect(res.coverageFailures).toHaveLength(1);
+      expect(res.coverageFailures[0]).toEqual({
+        reason: "LLM_NETWORK_ERROR",
+        details: "401 invalid_api_key"
+      });
+    });
   });
 });

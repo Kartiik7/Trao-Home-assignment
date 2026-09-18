@@ -9,6 +9,7 @@ import { allocateSchedule } from "../planning/scheduler";
 import { mergeRegeneratedSection } from "../planning/merge";
 import { researchCompany } from "../retrieval/index";
 import { generateCompanyBrief, generateQuestionsForRequirement } from "../generation/index";
+import { isAuthConfigError } from "../generation/llmClient";
 import { runCoveragePassLoop } from "../planning/index";
 import { PracticeProgress } from "../models/PracticeProgress";
 import { orderPracticeSession } from "../planning/practice";
@@ -314,6 +315,13 @@ router.post("/:id/regenerate", async (req, res) => {
       const research = await researchCompany(kitDoc.inputs.company_url, kitData.source.company);
       const briefRes = await generateCompanyBrief(research.pages);
       if (!briefRes.ok) {
+        if (isAuthConfigError(briefRes.reason, briefRes.details)) {
+          res.status(502).json({
+            error: "AI Generation failed due to invalid API configuration",
+            code: "LLM_AUTH_ERROR",
+          });
+          return;
+        }
         res.status(500).json({ error: "Failed to regenerate brief", reason: briefRes.reason });
         return;
       }
@@ -337,6 +345,18 @@ router.post("/:id/regenerate", async (req, res) => {
 
       // 3. Re-run coverage loop to fill gaps
       const updatedDraft = await runCoveragePassLoop(draft, context, generateQuestionsForRequirement, 3);
+
+      // Bail out with a clear error if the LLM calls themselves failed (e.g. bad API key),
+      // rather than silently saving a kit with the same gaps it started with.
+      const failures = (updatedDraft as any).coverageFailures as { reason: string; details?: any }[] | undefined;
+      if (failures?.length && failures.every(f => isAuthConfigError(f.reason, f.details))) {
+        res.status(502).json({
+          error: "AI Generation failed due to invalid API configuration",
+          code: "LLM_AUTH_ERROR",
+        });
+        return;
+      }
+
       kitData.questions = updatedDraft.questions;
 
       // 4. Update Schedule
@@ -423,6 +443,13 @@ router.post("/:id/practice", async (req, res) => {
     
     if (![1, 2, 3].includes(confidence) || !flashcard_id) {
       res.status(400).json({ error: "Invalid confidence rating or missing flashcard_id." });
+      return;
+    }
+
+    // Verify the kit exists and belongs to this user before recording progress against it
+    const kitExists = await Kit.exists({ _id: req.params.id, userId: req.userId });
+    if (!kitExists) {
+      res.status(404).json({ error: "Kit not found" });
       return;
     }
 

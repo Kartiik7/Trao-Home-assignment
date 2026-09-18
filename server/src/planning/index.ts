@@ -22,6 +22,7 @@ export async function runCoveragePassLoop(
   generateQuestionsForRequirement: GenerateQuestionsFn,
   maxPasses = 3
 ): Promise<KitDraft> {
+  const failures: { reason: string; details?: any }[] = [];
   let coverage = checkCoverage(kitDraft.requirements, kitDraft.questions);
   
   while (coverage.uncovered_requirement_ids.length > 0 && coverage.passes < maxPasses) {
@@ -39,6 +40,7 @@ export async function runCoveragePassLoop(
           _meta: { origin: "generated" as const, pinned: false }
         }));
       }
+      failures.push({ reason: res.reason, details: res.details });
       return [];
     });
     
@@ -62,6 +64,9 @@ export async function runCoveragePassLoop(
   
   // Attach final coverage status honestly
   (kitDraft as any).coverage = coverage;
+  // Attach raw LLM failures so callers can distinguish "legitimately no gaps to fill"
+  // from "the LLM calls themselves failed" (e.g. bad API key).
+  (kitDraft as any).coverageFailures = failures;
   
   return kitDraft;
 }
