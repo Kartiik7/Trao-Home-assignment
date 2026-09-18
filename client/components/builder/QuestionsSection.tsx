@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Kit, Question } from "@ai-interview-prep/types";
 import { MetaBadge } from "./KitBuilder";
-import { RefreshCw, Plus, Trash2 } from "lucide-react";
+import { RefreshCw, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 export default function QuestionsSection({
@@ -46,6 +46,35 @@ export default function QuestionsSection({
     onUpdate(updated);
   };
 
+  const handleCategoryChange = (id: string, newCategory: Question["category"]) => {
+    const updated = kit.questions.map(q => 
+      q.id === id 
+        ? { ...q, category: newCategory, _meta: { origin: "edited", pinned: true } } 
+        : q
+    );
+    onUpdate(updated);
+  };
+
+  const filtered = kit.questions.filter(q => q.category === activeCategory);
+
+  const handleReorder = (id: string, direction: "up" | "down") => {
+    const currentFilteredIndex = filtered.findIndex(q => q.id === id);
+    if (currentFilteredIndex === -1) return;
+    
+    const targetFilteredIndex = direction === "up" ? currentFilteredIndex - 1 : currentFilteredIndex + 1;
+    if (targetFilteredIndex < 0 || targetFilteredIndex >= filtered.length) return;
+    
+    const currentGlobalIndex = kit.questions.findIndex(q => q.id === id);
+    const targetGlobalIndex = kit.questions.findIndex(q => q.id === filtered[targetFilteredIndex].id);
+    
+    const updated = [...kit.questions];
+    const temp = updated[currentGlobalIndex];
+    updated[currentGlobalIndex] = updated[targetGlobalIndex];
+    updated[targetGlobalIndex] = temp;
+    
+    onUpdate(updated);
+  };
+
   const handleAddManual = () => {
     const newQ: Question = {
       id: "q_" + Date.now(),
@@ -59,7 +88,7 @@ export default function QuestionsSection({
     onUpdate([...kit.questions, newQ]);
   };
 
-  const filtered = kit.questions.filter(q => q.category === activeCategory);
+
 
   return (
     <div className="space-y-4 bg-white p-6 rounded-xl border shadow-sm">
@@ -101,17 +130,41 @@ export default function QuestionsSection({
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1">
                 <textarea 
-                  className="w-full font-medium text-lg bg-transparent border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md p-1 resize-none"
+                  className="w-full font-medium text-lg text-gray-900 bg-transparent border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md p-1 resize-none"
                   value={q.prompt}
                   onChange={(e) => handleTextChange(q.id, "prompt", e.target.value)}
                   rows={2}
                 />
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <MetaBadge meta={q._meta} />
+                <select
+                  value={q.category}
+                  onChange={(e) => handleCategoryChange(q.id, e.target.value as Question["category"])}
+                  className="text-xs bg-gray-100 border-gray-200 rounded px-2 py-1.5 outline-none focus:ring-1 focus:ring-blue-500 font-medium text-gray-700"
+                >
+                  <option value="technical">Technical</option>
+                  <option value="behavioural">Behavioural</option>
+                  <option value="system-design">System Design</option>
+                  <option value="company-fit">Company Fit</option>
+                </select>
+                <div className="flex gap-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => handleReorder(q.id, "up")}
+                    className="p-1 text-gray-400 hover:text-black hover:bg-gray-200 rounded transition-colors"
+                  >
+                    <ArrowUp size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleReorder(q.id, "down")}
+                    className="p-1 text-gray-400 hover:text-black hover:bg-gray-200 rounded transition-colors"
+                  >
+                    <ArrowDown size={14} />
+                  </button>
+                </div>
                 <button 
                   onClick={() => handleDelete(q.id)}
-                  className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all ml-1"
                 >
                   <Trash2 size={16} />
                 </button>
