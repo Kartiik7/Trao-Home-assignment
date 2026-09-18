@@ -15,7 +15,8 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "build:client": "npm run build --workspace=client",
     "build:server": "npm run build --workspace=server",
-    "build:types": "npm run build --workspace=@ai-interview-prep/types"
+    "build:types": "npm run build --workspace=@ai-interview-prep/types",
+    "build:all": "npm run build:types && npm run build:server"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

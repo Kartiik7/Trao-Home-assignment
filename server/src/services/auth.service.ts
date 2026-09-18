@@ -29,10 +29,11 @@ export function verifyToken(token: string): { userId: string } {
 
 /** Set the JWT as an httpOnly cookie on the response. */
 export function setAuthCookie(res: Response, token: string): void {
+  const isProd = process.env.NODE_ENV === "production";
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,            // must be true when sameSite is 'none'
+    sameSite: isProd ? "none" : "lax", // 'none' required for cross-site (Netlify → Render)
     path: "/",
     maxAge: COOKIE_MAX_AGE,
   });
@@ -40,10 +41,11 @@ export function setAuthCookie(res: Response, token: string): void {
 
 /** Clear the auth cookie. */
 export function clearAuthCookie(res: Response): void {
+  const isProd = process.env.NODE_ENV === "production";
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
     path: "/",
   });
 }
