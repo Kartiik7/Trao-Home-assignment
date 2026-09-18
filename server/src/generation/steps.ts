@@ -125,7 +125,7 @@ ${hiringProcessContext}
 ===END HIRING CONTEXT DATA===
 
 CRITICAL INSTRUCTIONS:
-1. Tailor the category of the question to the requirement (e.g. "5+ years React" -> technical/system-design, "mentors juniors" -> behavioural).
+1. MUST GENERATE DIVERSE CATEGORIES: Provide a mix of categories for the questions. For example, for a technical requirement, generate one purely "technical" question, one "behavioural" question (e.g., "Tell me about a time you struggled with..."), and perhaps one "system-design" or "company-fit" question. Do NOT just label them all "technical".
 2. "difficulty" must be 1, 2, or 3.
 3. Assign unique IDs to each question like "q_" + a random string/number.
 4. "requirement_ids" should contain ONLY ["${requirement.id}"].
