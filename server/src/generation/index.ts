@@ -1,4 +1,5 @@
 import pLimit from "p-limit";
+import crypto from "crypto";
 import {
   extractRequirements,
   generateCompanyBrief,
@@ -119,7 +120,11 @@ export async function generateKitDraft(
       limit(async () => {
         const qRes = await generateQuestionsForRequirement(req, hiringProcessContext);
         if (qRes.ok) {
-          const withMeta = qRes.data.map(q => ({ ...q, _meta: { origin: "generated" as const, pinned: false } }));
+          const withMeta = qRes.data.map(q => ({
+            ...q,
+            id: `q_${crypto.randomUUID()}`,
+            _meta: { origin: "generated" as const, pinned: false }
+          }));
           questions.push(...withMeta);
           log.push({ step: `generateQuestions_${req.id}`, success: true });
         } else {
@@ -136,7 +141,11 @@ export async function generateKitDraft(
   if (questions.length > 0 || requirements.length > 0) {
     const flashRes = await generateFlashcards(requirements, questions);
     if (flashRes.ok) {
-      flashcards = flashRes.data.map(f => ({ ...f, _meta: { origin: "generated" as const, pinned: false } }));
+      flashcards = flashRes.data.map(f => ({
+        ...f,
+        id: `f_${crypto.randomUUID()}`,
+        _meta: { origin: "generated" as const, pinned: false }
+      }));
       log.push({ step: "generateFlashcards", success: true });
     } else {
       log.push({ step: "generateFlashcards", success: false, reason: flashRes.reason });
