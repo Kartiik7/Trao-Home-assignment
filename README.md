@@ -105,3 +105,13 @@ If weights tie, it falls back to a stable sequential sort.
   - **Spaced Repetition**: Practice mode orders by immediate confidence but lacks long-term spaced repetition algorithms (like SuperMemo/SM-2).
   - **Auth Flows**: No email verification or password reset logic is included, per explicit assignment scoping.
   - **Batch Evaluation Delay**: The `evaluate` script processes cases sequentially rather than in parallel. A bulk parallel upload would instantly blow through LLM rate limits.
+
+## 11. Edge Cases and Failure Handling
+The system handles degraded inputs and failures gracefully, prioritizing honesty over hallucination:
+- **Invalid/Unreachable URLs**: If the company URL times out, returns a 404, or has no discoverable about/hiring pages, the crawler suppresses the error and returns empty data. The LLM is instructed to output an honest "information unavailable" brief rather than inventing facts.
+- **Thin Job Descriptions**: If the JD is a brief stub, `extractRequirements` extracts only the explicit text. The resulting kit will be sparse, strictly avoiding fabricated requirements.
+- **Empty Public Discussion**: If the Tavily API finds no relevant discussions, the system proceeds with just the crawler data.
+- **Malformed LLM JSON**: `callLlm` strictly validates all output against Zod schemas. If the LLM returns invalid JSON, the wrapper automatically fires a single "correction prompt" with the exact error message before giving up.
+- **LLM Rate Limits & Drops**: All LLM calls are wrapped in `executeWithBackoff`, which retries `429 Too Many Requests` up to 5 times. Hard failures (like daily quotas exhausting or `ENOTFOUND` disconnects) correctly fail the pipeline gracefully, emitting a structured error state to the client.
+- **Duplicate/Parallel Executions**: Kit generation is idempotent. Generating twice for the same inputs handles state safely, and partial pipeline failures are caught by the overarching orchestrator wrapper to ensure the UI receives a clean "failed" status rather than hanging indefinitely.
+- **Extreme Schedules (e.g., 1 day or 60 days)**: The pure-math allocator distributes questions across exactly the requested day count, tightly packing a 1-day schedule and sparsely distributing a 60-day one.
