@@ -1,38 +1,52 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Plus, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { NavHeader } from "../../components/NavHeader";
+import { useAuth } from "@/lib/auth-context";
+import { apiFetch } from "@/lib/api";
 
-async function getKits() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+export default function DashboardPage() {
+  const { user, loading: authLoading } = useAuth();
+  const [kits, setKits] = useState<any[]>([]);
+  const [kitsLoading, setKitsLoading] = useState(true);
 
-  if (!token) {
-    redirect("/login");
-  }
-
-  try {
-    const res = await fetch("http://localhost:5000/kits", {
-      headers: { Cookie: `token=${token}` },
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      if (res.status === 401) redirect("/login");
-      return [];
+  useEffect(() => {
+    if (!user && !authLoading) {
+      // If we've finished checking auth and there's no user, apiFetch will redirect
+      // but let's be safe. Usually, global apiFetch handles the redirect on 401.
+      setKitsLoading(false);
+      return;
     }
 
-    const data = await res.json();
-    return data.kits || [];
-  } catch (err) {
-    console.error("Dashboard fetch error:", err);
-    return [];
-  }
-}
+    if (user) {
+      apiFetch<{ kits: any[] }>("/kits")
+        .then((data) => {
+          setKits(data.kits || []);
+        })
+        .catch((err) => {
+          console.error("Dashboard fetch error:", err);
+        })
+        .finally(() => {
+          setKitsLoading(false);
+        });
+    }
+  }, [user, authLoading]);
 
-export default async function DashboardPage() {
-  const kits = await getKits();
+  // IMPORTANT: The race condition fix! Show loading spinner while determining auth state
+  // or while fetching kits. Do NOT redirect here, let the auth context/apiFetch handle it.
+  if (authLoading || kitsLoading) {
+    return (
+      <div className="flex flex-1 min-h-screen items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  // If we reach here and there's no user, they're probably already being redirected
+  // to /login by the apiFetch 401 handler, but we return null to avoid flashing content.
+  if (!user) return null;
 
   return (
     <>
