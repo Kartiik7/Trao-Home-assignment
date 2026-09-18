@@ -25,6 +25,7 @@ export default function PracticeSession({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
+  const [sessionConfidenceSum, setSessionConfidenceSum] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
   // Keyboard navigation
@@ -60,6 +61,7 @@ export default function PracticeSession({
 
     setIsFlipped(false);
     setSessionCount(prev => prev + 1);
+    setSessionConfidenceSum(prev => prev + confidence);
 
     if (currentIndex < flashcards.length - 1) {
       setCurrentIndex(prev => prev + 1);
@@ -100,8 +102,8 @@ export default function PracticeSession({
             <div className="text-2xl font-bold">{Math.min(stats.cards_seen + sessionCount, stats.total_cards)} / {stats.total_cards}</div>
           </div>
           <div className="bg-white border rounded-xl p-4 shadow-sm">
-            <div className="text-sm text-gray-500 uppercase tracking-wider mb-1">Avg Confidence</div>
-            <div className="text-2xl font-bold">{stats.average_confidence > 0 ? stats.average_confidence.toFixed(1) : "-"} / 3.0</div>
+            <div className="text-sm text-gray-500 uppercase tracking-wider mb-1">Session Avg</div>
+            <div className="text-2xl font-bold">{sessionCount > 0 ? (sessionConfidenceSum / sessionCount).toFixed(1) : "-"} / 3.0</div>
           </div>
         </div>
 
