@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Kit, Question } from "@ai-interview-prep/types";
 import { MetaBadge } from "./KitBuilder";
-import { RefreshCw, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { RefreshCw, Plus, Trash2, ArrowUp, ArrowDown, Pin } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 export default function QuestionsSection({
@@ -138,6 +138,20 @@ export default function QuestionsSection({
               </div>
               <div className="flex items-center gap-2">
                 <MetaBadge meta={q._meta} />
+                <button
+                  onClick={async () => {
+                    const updated = [{ ...q, _meta: { ...(q._meta || {}), pinned: !(q._meta?.pinned) } }];
+                    const data = await apiFetch<{ kit: any }>(`/kits/${kitId}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ questions: updated }),
+                    });
+                    onKitMerged(data.kit.kit_data);
+                  }}
+                  className="p-1 text-gray-400 hover:text-yellow-500 hover:bg-yellow-100 rounded transition-colors"
+                  title={q._meta?.pinned ? "Unpin" : "Pin"}
+                >
+                  <Pin size={14} />
+                </button>
                 <select
                   value={q.category}
                   onChange={(e) => handleCategoryChange(q.id, e.target.value as Question["category"])}

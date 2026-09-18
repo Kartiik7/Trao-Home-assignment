@@ -250,13 +250,29 @@ router.patch("/:id", async (req, res) => {
     }
 
     if (updates.questions) {
-      kitData.questions = pinEditedItems(kitData.questions, updates.questions);
-      // Re-run schedule since questions changed
-      kitData.schedule = allocateSchedule(
-        kitData.role.requirements, 
-        kitData.questions, 
-        kitDoc.inputs.days
-      );
+      // Merge incoming question updates, preserving existing questions and allowing pin toggle
+  const updatesMap = new Map(updates.questions.map((q) => [q.id, q]));
+  const mergedQuestions = [];
+  // Update existing questions
+  kitData.questions.forEach((q) => {
+    if (updatesMap.has(q.id)) {
+      const upd = updatesMap.get(q.id);
+      mergedQuestions.push({ ...q, ...upd });
+      updatesMap.delete(q.id);
+    } else {
+      mergedQuestions.push(q);
+    }
+  });
+  // Add any new questions
+  updatesMap.forEach((q) => mergedQuestions.push(q));
+  kitData.questions = mergedQuestions;
+  // Re-run schedule since questions changed
+  kitData.schedule = allocateSchedule(
+    kitData.role.requirements,
+    kitData.questions,
+    kitDoc.inputs.days
+  );
+
     }
 
     if (updates.flashcards) {
