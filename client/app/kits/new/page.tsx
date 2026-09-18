@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Upload, FileJson, Loader2 } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
+import { NavHeader } from "../../../components/NavHeader";
 
 export default function CreateKitPage() {
   const router = useRouter();
@@ -96,16 +97,15 @@ export default function CreateKitPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 pt-12 pb-20 px-6">
-      <div className="max-w-3xl mx-auto space-y-8">
-        
-        <div>
-          <Link href="/kits" className="inline-flex items-center gap-2 text-gray-500 hover:text-black mb-4 font-medium transition-colors">
-            <ArrowLeft size={18} /> Back to Dashboard
-          </Link>
-          <h1 className="text-3xl font-bold tracking-tight">Create New Kit</h1>
-          <p className="text-gray-500 mt-1">Generate a custom interview prep kit from a job description.</p>
-        </div>
+    <>
+      <NavHeader title="Create New Kit" backHref="/kits" backLabel="Dashboard" />
+      <main className="min-h-screen bg-gray-50 pt-12 pb-20 px-6">
+        <div className="max-w-3xl mx-auto space-y-8">
+          
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Create New Kit</h1>
+            <p className="text-gray-500 mt-1">Generate a custom interview prep kit from a job description.</p>
+          </div>
 
         <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
           {/* Tabs */}
@@ -227,7 +227,8 @@ export default function CreateKitPage() {
           </div>
         </div>
 
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }

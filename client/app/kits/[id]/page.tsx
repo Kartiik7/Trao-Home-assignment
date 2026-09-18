@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import KitLoaderWrapper from "./KitLoaderWrapper";
+import { NavHeader } from "../../../components/NavHeader";
 
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -39,8 +40,11 @@ export default async function KitPage({ params }: { params: Promise<{ id: string
 
   // Delegate entirely to a Client Component to handle optimistic swaps
   return (
-    <main className="min-h-screen bg-gray-50 pt-8 pb-20">
-      <KitLoaderWrapper initialKitDoc={kitDoc} kitId={id} />
-    </main>
+    <>
+      <NavHeader title="Kit Builder" backHref="/kits" backLabel="Dashboard" />
+      <main className="min-h-screen bg-gray-50 pt-8 pb-20">
+        <KitLoaderWrapper initialKitDoc={kitDoc} kitId={id} />
+      </main>
+    </>
   );
 }

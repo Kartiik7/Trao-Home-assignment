@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { NavHeader } from "../../components/NavHeader";
 
 async function getKits() {
   const cookieStore = await cookies();
@@ -34,8 +35,10 @@ export default async function DashboardPage() {
   const kits = await getKits();
 
   return (
-    <main className="min-h-screen bg-gray-50 pt-12 pb-20 px-6">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <>
+      <NavHeader title="Dashboard" />
+      <main className="min-h-screen bg-gray-50 pt-12 pb-20 px-6">
+        <div className="max-w-5xl mx-auto space-y-8">
         
         <div className="flex items-center justify-between">
           <div>
@@ -105,7 +108,8 @@ export default async function DashboardPage() {
         )}
 
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 

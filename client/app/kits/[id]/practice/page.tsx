@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import PracticeSession from "../../../../components/practice/PracticeSession";
 import { cookies } from "next/headers";
+import { NavHeader } from "../../../../components/NavHeader";
 
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -37,12 +38,15 @@ export default async function PracticePage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col pt-12 pb-20 px-6">
-      <PracticeSession 
-        flashcards={data.ordered_flashcards} 
-        stats={data.stats} 
-        kitId={id} 
-      />
-    </main>
+    <>
+      <NavHeader title="Practice Mode" backHref={`/kits/${id}`} backLabel="Kit Builder" />
+      <main className="min-h-screen bg-gray-50 flex flex-col pt-12 pb-20 px-6">
+        <PracticeSession 
+          flashcards={data.ordered_flashcards} 
+          stats={data.stats} 
+          kitId={id} 
+        />
+      </main>
+    </>
   );
 }
