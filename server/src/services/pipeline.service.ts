@@ -103,6 +103,7 @@ export async function runPipelineAsync(kitDocId: string) {
     if (result.ok) {
       doc.status = "ready";
       doc.kit_data = result.kit;
+      doc.markModified("kit_data"); // Required: Mongoose doesn't track deep changes to Mixed fields
     } else {
       doc.status = "failed";
       doc.error = result.error;

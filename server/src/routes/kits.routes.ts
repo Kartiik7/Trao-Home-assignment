@@ -280,6 +280,7 @@ router.patch("/:id", async (req, res) => {
     }
 
     kitDoc.kit_data = valResult.data;
+    kitDoc.markModified("kit_data"); // Required: Mongoose won't detect deep changes to Mixed fields
     await kitDoc.save();
     res.json({ kit: kitDoc });
 
@@ -422,6 +423,7 @@ router.post("/:id/regenerate", async (req, res) => {
     }
 
     kitDoc.kit_data = valResult.data;
+    kitDoc.markModified("kit_data"); // Required: Mongoose won't detect deep changes to Mixed fields
     await kitDoc.save();
 
     res.json({ kit: kitDoc });
