@@ -6,7 +6,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "cd ../shared/types && tsc && cd ../../server && tsc",
     "start": "npm run build && node dist/index.js",
-    "postinstall": "npm run build",
+    "postinstall": "npm run build || echo 'Skipping server build (tsc not available)'",
     "evaluate": "ts-node scripts/evaluate.ts",
     "evaluate:timed": "ts-node scripts/evaluate-timed.ts",
     "test": "vitest run"
