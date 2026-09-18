@@ -20,6 +20,13 @@ export type Requirement = z.infer<typeof RequirementSchema>;
 
 export async function extractRequirements(jdText: string): Promise<LlmResult<Requirement[]>> {
   const schema = z.array(RequirementSchema);
+  
+  const MAX_JD_CHARS = 6000;
+  let cappedJdText = jdText;
+  if (cappedJdText.length > MAX_JD_CHARS) {
+    cappedJdText = cappedJdText.substring(0, MAX_JD_CHARS) + "\n...[truncated]";
+  }
+
   const prompt = `
 You are an expert technical recruiter. Extract the core requirements from the following Job Description.
 
@@ -34,7 +41,7 @@ CRITICAL INSTRUCTIONS:
 [{ "id": string, "text": string, "kind": "technical" | "behavioural" | "domain", "priority": "must" | "nice" }]
 
 ===BEGIN JD DATA===
-${jdText.substring(0, 50000)}
+${cappedJdText}
 ===END JD DATA===
 `;
   return callLlm(prompt, schema);
@@ -52,7 +59,19 @@ export type CompanyBrief = z.infer<typeof CompanyBriefSchema>;
 export async function generateCompanyBrief(pages: CrawledPage[]): Promise<LlmResult<CompanyBrief>> {
   const schema = CompanyBriefSchema;
   
-  const content = pages.map(p => `URL: ${p.url}\nCategory: ${p.category}\nContent: ${p.text.substring(0, 10000)}`).join("\n\n---\n\n");
+  let content = "";
+  const MAX_COMBINED_CHARS = 7000;
+  for (const p of pages) {
+    const pageText = `URL: ${p.url}\nCategory: ${p.category}\nContent: ${p.text}`;
+    if (content.length + pageText.length > MAX_COMBINED_CHARS) {
+      const remaining = MAX_COMBINED_CHARS - content.length;
+      if (remaining > 100) {
+        content += pageText.substring(0, remaining) + "\n...[truncated]";
+      }
+      break; // Stop adding more pages once budget is exhausted
+    }
+    content += pageText + "\n\n---\n\n";
+  }
   
   const prompt = `
 You are an expert technical researcher preparing an interviewee for an interview.

@@ -55,6 +55,12 @@ export function cleanPage(html: string, baseUrl: string): CleanedPage {
   text = text.replace(/\n\s*\n/g, "\n");
   text = text.trim();
 
+  // Cap page text to avoid blowing up the LLM context limits on massive pages
+  const MAX_PAGE_CHARS = 3500;
+  if (text.length > MAX_PAGE_CHARS) {
+    text = text.substring(0, MAX_PAGE_CHARS) + "\n...[truncated]";
+  }
+
   return {
     text,
     links: Array.from(links),

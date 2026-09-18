@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { z } from "zod";
+import { estimateTokens } from "../utils/token";
 
 // Initialize Groq SDK
 // If GROQ_API_KEY is not in env, it will need to be mocked/stubbed for tests
@@ -66,6 +67,11 @@ export async function callLlm<T>(
 ): Promise<LlmResult<T>> {
   if (!process.env.GROQ_API_KEY && process.env.NODE_ENV !== "test") {
     console.warn("⚠️ GROQ_API_KEY not set. LLM calls will fail.");
+  }
+
+  const estimatedTokens = estimateTokens(prompt);
+  if (estimatedTokens > 7000) {
+    console.warn(`[LLM Warning] Prompt estimated to be large (${estimatedTokens} tokens). This may exceed free-tier TPM limits.`);
   }
 
   let rawText = "";
