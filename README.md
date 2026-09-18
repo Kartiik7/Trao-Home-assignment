@@ -22,7 +22,7 @@ This matches the preferred stack outlined in the assignment brief exactly, with 
 2. **Environment Variables:**
    Copy the example environment files and fill in your keys:
    - Client (`client/.env`): Check `client/.env.example` (requires `API_URL`, `NEXT_PUBLIC_API_URL`).
-   - Server (`server/.env`): Check `server/.env.example` (requires `PORT`, `MONGODB_URI`, `JWT_SECRET`, `CLIENT_URL`, `GROQ_API_KEY`, `GROQ_MODEL`, `SERPER_API_KEY`).
+   - Server (`server/.env`): Check `server/.env.example` (requires `PORT`, `MONGODB_URI`, `JWT_SECRET`, `CLIENT_URL`, `GROQ_API_KEY`, `GROQ_MODEL`, `TAVILY_API_KEY`).
 3. **Run the Dev Servers:**
    Start the frontend and backend concurrently:
    ```bash
@@ -54,7 +54,7 @@ The project is structured as a monorepo with three primary packages:
 - `shared/types/` (`@ai-interview-prep/types`): Shared Zod validation schemas and TypeScript interfaces ensuring end-to-end type safety.
 
 The server's business logic (`server/src/`) strictly separates concerns into distinct layers:
-- **Retrieval (`server/src/retrieval/`)**: Handles web crawling, URL validation, and Serper API searches.
+- **Retrieval (`server/src/retrieval/`)**: Handles web crawling, URL validation, and Tavily API searches.
 - **Generation (`server/src/generation/`)**: Orchestrates LLM prompting and schema validation using `groq-sdk`.
 - **Planning (`server/src/planning/`)**: Houses deterministic logic for scheduling, coverage-gap detection, and merging regenerated items.
 - **Persistence (`server/src/models/` & `server/src/routes/`)**: Mongoose models, deduplication logic, and Express API endpoints.
@@ -62,7 +62,7 @@ The server's business logic (`server/src/`) strictly separates concerns into dis
 ## 5. Retrieval Approach and Sources
 The retrieval layer enriches the context before LLM generation:
 - **Web Crawler (`server/src/retrieval/crawler.ts`)**: Instead of hardcoding paths (like `/about`), the crawler dynamically fetches the homepage, ranks internal links heuristically, and follows them to build a comprehensive context while strictly adhering to `robots.txt`.
-- **Public Discussion Search (`server/src/retrieval/search.ts`)**: Uses the Serper.dev API to find public sentiment and technical discussions about the company.
+- **Public Discussion Search (`server/src/retrieval/search.ts`)**: Uses the Tavily Search API to find public sentiment and technical discussions about the company.
 - **Security Validation (`server/src/retrieval/validator.ts`)**: To prevent Server-Side Request Forgery (SSRF), the validator ensures that all requested URLs are public, safely formatted, and not pointing to internal/private IP ranges.
 
 ## 6. Research and Generation Sequence
