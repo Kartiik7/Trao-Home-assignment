@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
+    "build": "cd ../shared/types && tsc && cd ../../server && tsc",
     "start": "npm run build && node dist/index.js",
     "postinstall": "npm run build",
     "evaluate": "ts-node scripts/evaluate.ts",
