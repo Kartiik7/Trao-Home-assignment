@@ -4,8 +4,7 @@ import { z } from "zod";
 // Initialize Groq SDK
 // If GROQ_API_KEY is not in env, it will need to be mocked/stubbed for tests
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "dummy-key-for-tests" });
-// TODO: Replace with the exact model name available to your Groq API key (e.g., 'llama3-8b-8192' if active)
-const MODEL_NAME = process.env.GROQ_MODEL || "llama3-8b-8192";
+const MODEL_NAME = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
 
 export type LlmResult<T> = 
   | { ok: true; data: T }
