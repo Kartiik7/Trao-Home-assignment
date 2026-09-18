@@ -10,6 +10,10 @@ const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
+// Trust the first hop from Render's (or any reverse-proxy's) X-Forwarded-For header.
+// Required so express-rate-limit can identify real client IPs correctly.
+app.set("trust proxy", 1);
+
 // ─── Middleware ───
 app.use(
   cors({
