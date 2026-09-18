@@ -3,29 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Next.js edge middleware — route guard.
  *
- * Checks for the `token` cookie to decide whether the user has a session.
- * NOTE: This only checks cookie existence, not JWT validity. Actual JWT
- * verification happens server-side via GET /auth/me. This middleware is
- * a fast redirect gate, not a security boundary.
+ * IMPORTANT: The auth cookie (`token`) is set by the backend (Render) with
+ * `httpOnly: true` and `sameSite: "none"`. It is a CROSS-ORIGIN cookie —
+ * Netlify (frontend) and Render (backend) are on different domains.
+ *
+ * The Next.js Edge Runtime cannot read cross-origin httpOnly cookies via
+ * `request.cookies`, so any cookie-based guard here would always see an
+ * empty token and redirect every user to /login, even after a successful login.
+ *
+ * Solution: Remove the cookie gate from middleware entirely. Auth protection
+ * is handled at the component/context level by AuthProvider → GET /auth/me.
+ * Protected pages that need auth will redirect to /login themselves when
+ * /auth/me returns 401.
  */
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
-  const { pathname } = request.nextUrl;
-
-  const isAuthPage = pathname === "/login" || pathname === "/register";
-
-  // Unauthenticated user trying to access protected page → redirect to login
-  if (!token && !isAuthPage) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Authenticated user trying to access auth pages → redirect to home
-  if (token && isAuthPage) {
-    const homeUrl = new URL("/", request.url);
-    return NextResponse.redirect(homeUrl);
-  }
-
+export function middleware(_request: NextRequest) {
   return NextResponse.next();
 }
 
