@@ -15,27 +15,34 @@ export default function KitBuilder({ initialKit, kitId }: { initialKit: Kit; kit
 
   // Debounced patch
   const patchTimer = useRef<NodeJS.Timeout>(null);
+  const patchQueue = useRef<Promise<void>>(Promise.resolve());
+  const patchVersion = useRef(0);
   
   const applyPatch = useCallback(async (updates: Partial<Kit>) => {
     // Optimistic UI update
     setKit((prev) => ({ ...prev, ...updates }));
 
+    patchVersion.current += 1;
+    const version = patchVersion.current;
+
     if (patchTimer.current) clearTimeout(patchTimer.current);
     
     setIsPatching(true);
     patchTimer.current = setTimeout(async () => {
-      try {
-        const data = await apiFetch<{ kit: any }>(`/kits/${kitId}`, {
-          method: "PATCH",
-          body: JSON.stringify(updates),
-        });
-        // Overwrite with server truth (pins might have been auto-added)
-        setKit(data.kit.kit_data);
-      } catch (err) {
-        console.error("Patch failed, rollback would happen here", err);
-      } finally {
-        setIsPatching(false);
-      }
+      patchQueue.current = patchQueue.current.then(async () => {
+        try {
+          const data = await apiFetch<{ kit: any }>(`/kits/${kitId}`, {
+            method: "PATCH",
+            body: JSON.stringify(updates),
+          });
+          // Older responses must not replace newer optimistic edits.
+          if (version === patchVersion.current) setKit(data.kit.kit_data);
+        } catch (err) {
+          console.error("Patch failed, rollback would happen here", err);
+        } finally {
+          if (version === patchVersion.current) setIsPatching(false);
+        }
+      });
     }, 600); // 600ms debounce
   }, [kitId]);
 

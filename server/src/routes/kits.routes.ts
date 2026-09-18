@@ -11,6 +11,7 @@ import { researchCompany } from "../retrieval/index";
 import { generateCompanyBrief, generateQuestionsForRequirement } from "../generation/index";
 import { isAuthConfigError } from "../generation/llmClient";
 import { runCoveragePassLoop } from "../planning/index";
+import { checkCoverage } from "../planning/coverage";
 import { PracticeProgress } from "../models/PracticeProgress";
 import { orderPracticeSession } from "../planning/practice";
 import { analyzeWeakSpots } from "../planning/weakSpots";
@@ -250,28 +251,9 @@ router.patch("/:id", async (req, res) => {
     }
 
     if (updates.questions) {
-      // Merge incoming question updates, preserving existing questions and allowing pin toggle
-  const updatesMap = new Map(updates.questions.map((q) => [q.id, q]));
-  const mergedQuestions = [];
-  // Update existing questions
-  kitData.questions.forEach((q) => {
-    if (updatesMap.has(q.id)) {
-      const upd = updatesMap.get(q.id);
-      mergedQuestions.push({ ...q, ...upd });
-      updatesMap.delete(q.id);
-    } else {
-      mergedQuestions.push(q);
-    }
-  });
-  // Add any new questions
-  updatesMap.forEach((q) => mergedQuestions.push(q));
-  kitData.questions = mergedQuestions;
-  // Re-run schedule since questions changed
-  kitData.schedule = allocateSchedule(
-    kitData.role.requirements,
-    kitData.questions,
-    kitDoc.inputs.days
-  );
+      // The builder sends the complete question list, so omitted IDs are deletions.
+      kitData.questions = pinEditedItems(kitData.questions, updates.questions);
+      kitData.schedule = allocateSchedule(kitData.role.requirements, kitData.questions, kitDoc.inputs.days);
 
     }
 
@@ -348,35 +330,72 @@ router.post("/:id/regenerate", async (req, res) => {
     }
 
     if (section === "questions") {
-      // 1. Discard unpinned questions in the target category by running an empty merge first
-      kitData = mergeRegeneratedSection(kitData, { questions: [] }, { type: "questions", category });
-      
-      // 2. Identify missing coverage
-      const context = kitData.company_brief.what_they_do; // approximate context for LLM
-      const draft = {
-        requirements: kitData.role.requirements,
-        brief: kitData.company_brief,
-        questions: kitData.questions,
-        flashcards: kitData.flashcards,
-      };
-
-      // 3. Re-run coverage loop to fill gaps
-      const updatedDraft = await runCoveragePassLoop(draft, context, generateQuestionsForRequirement, 3);
-
-      // Bail out with a clear error if the LLM calls themselves failed (e.g. bad API key),
-      // rather than silently saving a kit with the same gaps it started with.
-      const failures = (updatedDraft as any).coverageFailures as { reason: string; details?: any }[] | undefined;
-      if (failures?.length && failures.every(f => isAuthConfigError(f.reason, f.details))) {
-        res.status(502).json({
-          error: "AI Generation failed due to invalid API configuration",
-          code: "LLM_AUTH_ERROR",
-        });
+      if (!category) {
+        res.status(400).json({ error: "A category is required to regenerate questions." });
         return;
       }
 
-      kitData.questions = updatedDraft.questions;
+      const replacementRequirementIds = new Set(
+        kitData.questions
+          .filter(q => q.category === category && !q._meta?.pinned)
+          .flatMap(q => q.requirement_ids)
+      );
+      const requirementsToRegenerate = kitData.role.requirements.filter(req => replacementRequirementIds.has(req.id));
 
-      // 4. Update Schedule
+      // Discard unpinned questions in the target category before replacing them.
+      kitData = mergeRegeneratedSection(kitData, { questions: [] }, { type: "questions", category });
+
+      const context = kitData.company_brief.what_they_do; // approximate context for LLM
+      const replacementQuestions = [];
+      for (const requirement of requirementsToRegenerate) {
+        const result = await generateQuestionsForRequirement(requirement, context, { forceCategory: category });
+        if (!result.ok) {
+          if (isAuthConfigError(result.reason, result.details)) {
+            res.status(502).json({
+              error: "AI Generation failed due to invalid API configuration",
+              code: "LLM_AUTH_ERROR",
+            });
+            return;
+          }
+          res.status(500).json({ error: "Failed to regenerate questions", reason: result.reason });
+          return;
+        }
+
+        replacementQuestions.push(...result.data.map(question => ({
+          ...question,
+          id: `q_${crypto.randomUUID()}`,
+          _meta: { origin: "generated" as const, pinned: false },
+        })));
+      }
+
+      kitData = mergeRegeneratedSection(
+        kitData,
+        { questions: replacementQuestions },
+        { type: "questions", category }
+      );
+
+      // Use coverage only as a safety net for gaps introduced during replacement.
+      const replacementCoverage = checkCoverage(kitData.role.requirements, kitData.questions);
+      if (replacementCoverage.uncovered_requirement_ids.length > 0) {
+        const draft = {
+          requirements: kitData.role.requirements,
+          brief: kitData.company_brief,
+          questions: kitData.questions,
+          flashcards: kitData.flashcards,
+        };
+        const updatedDraft = await runCoveragePassLoop(draft, context, generateQuestionsForRequirement, 3);
+        const failures = (updatedDraft as any).coverageFailures as { reason: string; details?: any }[] | undefined;
+        if (failures?.length && failures.every(f => isAuthConfigError(f.reason, f.details))) {
+          res.status(502).json({
+            error: "AI Generation failed due to invalid API configuration",
+            code: "LLM_AUTH_ERROR",
+          });
+          return;
+        }
+        kitData.questions = updatedDraft.questions;
+      }
+
+      // Update Schedule
       kitData.schedule = allocateSchedule(kitData.role.requirements, kitData.questions, kitDoc.inputs.days);
     }
 

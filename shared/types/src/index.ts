@@ -3,6 +3,7 @@
 // Kit types (Appendix A)
 export type {
   Source,
+  ItemMeta,
   CompanyBrief,
   Requirement,
   Role,

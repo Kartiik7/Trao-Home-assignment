@@ -106,7 +106,8 @@ export type Question = z.infer<typeof QuestionSchema>;
 
 export async function generateQuestionsForRequirement(
   requirement: Requirement,
-  hiringProcessContext: string
+  hiringProcessContext: string,
+  options?: { forceCategory?: Question["category"] }
 ): Promise<LlmResult<Question[]>> {
   const schema = z.array(QuestionSchema);
   
@@ -125,14 +126,23 @@ ${hiringProcessContext}
 ===END HIRING CONTEXT DATA===
 
 CRITICAL INSTRUCTIONS:
-1. MUST GENERATE DIVERSE CATEGORIES: Provide a mix of categories for the questions. For example, for a technical requirement, generate one purely "technical" question, one "behavioural" question (e.g., "Tell me about a time you struggled with..."), and perhaps one "system-design" or "company-fit" question. Do NOT just label them all "technical".
+1. ${options?.forceCategory
+  ? `ALL QUESTIONS MUST USE THE CATEGORY "${options.forceCategory}".`
+  : 'MUST GENERATE DIVERSE CATEGORIES: Provide a mix of categories for the questions. For example, for a technical requirement, generate one purely "technical" question, one "behavioural" question (e.g., "Tell me about a time you struggled with..."), and perhaps one "system-design" or "company-fit" question. Do NOT just label them all "technical".'}
 2. "difficulty" must be 1, 2, or 3.
 3. Assign unique IDs to each question like "q_" + a random string/number.
 4. "requirement_ids" should contain ONLY ["${requirement.id}"].
 5. Return ONLY a JSON array of objects matching this schema:
 [{ "id": string, "requirement_ids": string[], "category": "technical" | "behavioural" | "system-design" | "company-fit", "prompt": string, "answer_outline": string, "difficulty": number }]
 `;
-  return callLlm(prompt, schema);
+  const result = await callLlm(prompt, schema);
+  if (result.ok && options?.forceCategory) {
+    return {
+      ...result,
+      data: result.data.map(question => ({ ...question, category: options.forceCategory! })),
+    };
+  }
+  return result;
 }
 
 // ─── 4. Generate Flashcards ───
