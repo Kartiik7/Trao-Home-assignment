@@ -125,7 +125,7 @@ export default function QuestionsSection({
       </div>
 
       <div className="space-y-4 pt-4">
-        {filtered.map(q => (
+        {kit.questions.filter(q => q.category === activeCategory).map(q => (
           <div key={q.id} className="border rounded-lg p-4 space-y-3 group hover:border-blue-200 transition-colors bg-gray-50/50">
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1">
@@ -181,7 +181,7 @@ export default function QuestionsSection({
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {kit.questions.filter(q => q.category === activeCategory).length === 0 && (
           <div className="text-center py-8 text-gray-500">
             No questions in this category.
           </div>
