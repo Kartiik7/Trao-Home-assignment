@@ -1,0 +1,107 @@
+# AI Interview Prep Kit
+
+## 1. Project Overview and Chosen Tech Stack
+The AI Interview Prep Kit is a full-stack application designed to generate highly customized, structured interview preparation plans based on a job description and company URL.
+
+**Tech Stack:**
+- **Frontend:** Next.js 15, Tailwind CSS
+- **Backend:** Express, Node.js
+- **Database:** MongoDB
+- **Language:** TypeScript across the entire monorepo
+
+This matches the preferred stack outlined in the assignment brief exactly, with no substitutions.
+
+## 2. Setup Instructions
+
+### Local Development
+1. **Install Dependencies:**
+   Run `npm install` at the project root to install workspaces.
+   ```bash
+   npm install
+   ```
+2. **Environment Variables:**
+   Copy the example environment files and fill in your keys:
+   - Client (`client/.env`): Check `client/.env.example` (requires `API_URL`, `NEXT_PUBLIC_API_URL`).
+   - Server (`server/.env`): Check `server/.env.example` (requires `PORT`, `MONGODB_URI`, `JWT_SECRET`, `CLIENT_URL`, `GROQ_API_KEY`, `GROQ_MODEL`, `SERPER_API_KEY`).
+3. **Run the Dev Servers:**
+   Start the frontend and backend concurrently:
+   ```bash
+   # In client/
+   npm run dev
+   
+   # In server/
+   npm run dev
+   ```
+
+### Batch Entry Point (Evaluation Script)
+To generate full kits from a JSON array of inputs (as defined in `cases.json`):
+```bash
+cd server
+npm run evaluate -- --input cases.json --output output.json
+```
+
+### Deployed Application
+[Deployment URL will go here]
+
+## 3. LLM Provider and Model
+- **Provider:** Groq (via `groq-sdk`)
+- **Model:** `openai/gpt-oss-20b` (Configured via `GROQ_MODEL` environment variable)
+
+## 4. High-Level Architecture
+The project is structured as a monorepo with three primary packages:
+- `client/`: Next.js frontend application.
+- `server/`: Express backend API and worker processes.
+- `shared/types/` (`@ai-interview-prep/types`): Shared Zod validation schemas and TypeScript interfaces ensuring end-to-end type safety.
+
+The server's business logic (`server/src/`) strictly separates concerns into distinct layers:
+- **Retrieval (`server/src/retrieval/`)**: Handles web crawling, URL validation, and Serper API searches.
+- **Generation (`server/src/generation/`)**: Orchestrates LLM prompting and schema validation using `groq-sdk`.
+- **Planning (`server/src/planning/`)**: Houses deterministic logic for scheduling, coverage-gap detection, and merging regenerated items.
+- **Persistence (`server/src/models/` & `server/src/routes/`)**: Mongoose models, deduplication logic, and Express API endpoints.
+
+## 5. Retrieval Approach and Sources
+The retrieval layer enriches the context before LLM generation:
+- **Web Crawler (`server/src/retrieval/crawler.ts`)**: Instead of hardcoding paths (like `/about`), the crawler dynamically fetches the homepage, ranks internal links heuristically, and follows them to build a comprehensive context while strictly adhering to `robots.txt`.
+- **Public Discussion Search (`server/src/retrieval/search.ts`)**: Uses the Serper.dev API to find public sentiment and technical discussions about the company.
+- **Security Validation (`server/src/retrieval/validator.ts`)**: To prevent Server-Side Request Forgery (SSRF), the validator ensures that all requested URLs are public, safely formatted, and not pointing to internal/private IP ranges.
+
+## 6. Research and Generation Sequence
+The kit generation pipeline (`server/src/generation/index.ts`) is orchestrated in a strict sequence:
+1. **Parallel Extraction**: `extractRequirements` (parsing the JD) and `generateCompanyBrief` (synthesizing crawler/search research) run concurrently.
+2. **Per-Requirement Question Generation**: `generateQuestionsForRequirement` runs for each extracted requirement. This is wrapped in a `p-limit(2)` concurrency cap to avoid rate limits.
+3. **Flashcards**: `generateFlashcards` builds behavioral/trivia items.
+4. **Planning Layer Pass**: The draft is passed to `runCoveragePassLoop` and `allocateSchedule` (`server/src/planning/index.ts`). 
+
+**Why Coverage & Scheduling are Pure Code:**
+The coverage checker and schedule allocator do not use LLMs. This is an intentional design choice to guarantee deterministic outputs, enforce strict invariants (e.g., exactly `N` days, precise integer-minute durations), and drastically reduce API costs and latency.
+
+## 7. Generated, Edited, and Pinned State
+All kit items (questions, flashcards, briefs) share a metadata model:
+```ts
+_meta: { origin: "generated" | "edited" | "manual", pinned: boolean }
+```
+- **Tracking Edits**: When a user modifies an item via `PATCH /kits/:id` (`server/src/routes/kits.routes.ts`), the `pinEditedItems` helper deep-compares the text and auto-flips `origin` to `"edited"` and `pinned` to `true`.
+- **Regeneration Integrity**: During a partial regeneration, `mergeRegeneratedSection` (`server/src/planning/merge.ts`) drops unpinned items but perfectly preserves `pinned` items, ensuring user edits survive AI reruns.
+
+## 8. Schedule Allocation
+Schedule allocation (`server/src/planning/scheduler.ts`) distributes questions across the requested days:
+- **Sorting**: Questions are sorted by priority (e.g., "must" vs "nice-to-have") and difficulty. This ensures that the hardest, most critical questions are front-loaded early in the schedule.
+- **Weighting**: Each question type maps to an integer minute duration (e.g., Difficulty 1 = 15m, Difficulty 3 = 40m). The allocator guarantees the output fits exactly `N` days.
+
+## 9. Practice Mode Ordering
+Practice mode uses a confidence-weighted sort (`orderPracticeSession` in `server/src/planning/practice.ts`). 
+Weights are calculated based on the user's `last_confidence` rating:
+1. **Lowest confidence** (`1`) -> Weight 1.0 (Shown First)
+2. **Never seen** (No record) -> Weight 1.5
+3. **Medium confidence** (`2`) -> Weight 2.0
+4. **Highest confidence** (`3`) -> Weight 3.0 (Shown Last)
+
+If weights tie, it falls back to a stable sequential sort.
+
+## 10. Key Design Decisions, Trade-offs, and Limitations
+- **Coverage Pass Limits**: The `runCoveragePassLoop` caps out at `maxPasses = 3`. This prevents infinite loops and runaway API costs if the LLM stubbornly refuses to generate a question for a malformed requirement.
+- **Concurrency Caps**: A strict `p-limit(2)` is used for generation loops. While parallelizing everything would be faster, the Groq free-tier strict token/minute limits would immediately trigger a `429 Too Many Requests` storm.
+- **Known Gaps (Out of Scope)**:
+  - **Spaced Repetition**: Practice mode orders by immediate confidence but lacks long-term spaced repetition algorithms (like SuperMemo/SM-2).
+  - **Auth Flows**: No email verification or password reset logic is included, per explicit assignment scoping.
+  - **Batch Evaluation Delay**: The `evaluate` script processes cases sequentially rather than in parallel. A bulk parallel upload would instantly blow through LLM rate limits.
