@@ -19,6 +19,7 @@ export default function QuestionsSection({
 }) {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Question["category"]>("technical");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleRegenerate = async () => {
     setIsRegenerating(true);
@@ -40,10 +41,24 @@ export default function QuestionsSection({
     onUpdate(updated);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this question?")) return;
     const updated = kit.questions.filter(q => q.id !== id);
+    // Optimistically update UI
     onUpdate(updated);
+    // Persist immediately (don't rely on debounce — avoid reverts on quick refresh)
+    try {
+      setDeleteError(null);
+      const data = await apiFetch<{ kit: any }>(`/kits/${kitId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ questions: updated }),
+      });
+      onKitMerged(data.kit.kit_data);
+    } catch (err: any) {
+      // If the delete failed (e.g., required skill coverage), show error and revert
+      setDeleteError(err?.message || "Could not delete question. It may be required for the schedule.");
+      onUpdate(kit.questions); // revert optimistic update
+    }
   };
 
   const handleCategoryChange = (id: string, newCategory: Question["category"]) => {
@@ -92,6 +107,12 @@ export default function QuestionsSection({
 
   return (
     <div className="space-y-4 bg-white p-6 rounded-xl border shadow-sm">
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg flex items-center justify-between">
+          <span>⚠️ {deleteError}</span>
+          <button onClick={() => setDeleteError(null)} className="ml-2 hover:text-red-900 font-bold">✕</button>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2 items-center justify-between border-b pb-4">
         <div className="flex gap-2">
           {["technical", "behavioural", "system-design", "company-fit"].map((c) => (
@@ -139,20 +160,35 @@ export default function QuestionsSection({
               <div className="flex items-center gap-2">
                 <MetaBadge meta={q._meta} />
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const updated: Question[] = kit.questions.map(question =>
                       question.id === q.id
                         ? {
                             ...question,
                             _meta: question._meta
                               ? { ...question._meta, pinned: !question._meta.pinned }
-                              : { origin: "edited", pinned: true },
+                              : { origin: "generated", pinned: true },
                           }
                         : question
                     );
+                    // Update local UI immediately
                     onUpdate(updated);
+                    // Persist immediately — don't rely on 600ms debounce
+                    try {
+                      const data = await apiFetch<{ kit: any }>(`/kits/${kitId}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ questions: updated }),
+                      });
+                      onKitMerged(data.kit.kit_data);
+                    } catch {
+                      // Non-critical — UI already updated; will resync on next save
+                    }
                   }}
-                  className="p-1 text-gray-400 hover:text-yellow-500 hover:bg-yellow-100 rounded transition-colors"
+                  className={`p-1 rounded transition-colors ${
+                    q._meta?.pinned
+                      ? "text-yellow-500 bg-yellow-100 hover:text-yellow-700"
+                      : "text-gray-400 hover:text-yellow-500 hover:bg-yellow-100"
+                  }`}
                   title={q._meta?.pinned ? "Unpin" : "Pin"}
                 >
                   <Pin size={14} />

@@ -32,7 +32,7 @@ export async function apiFetch<T = unknown>(
   const data = await res.json();
 
   if (!res.ok) {
-    throw new ApiError(res.status, data.message || "Request failed", data);
+    throw new ApiError(res.status, data.error || data.message || "Request failed", data);
   }
 
   return data as T;

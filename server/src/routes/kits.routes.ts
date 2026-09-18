@@ -252,8 +252,19 @@ router.patch("/:id", async (req, res) => {
 
     if (updates.questions) {
       // The builder sends the complete question list, so omitted IDs are deletions.
-      kitData.questions = pinEditedItems(kitData.questions, updates.questions);
-      kitData.schedule = allocateSchedule(kitData.role.requirements, kitData.questions, kitDoc.inputs.days);
+      const nextQuestions = pinEditedItems(kitData.questions, updates.questions);
+
+      try {
+        kitData.schedule = allocateSchedule(kitData.role.requirements, nextQuestions, kitDoc.inputs.days);
+      } catch (scheduleErr: any) {
+        res.status(409).json({
+          error: "Can't save this change — a required skill would no longer be covered by any question.",
+          reason: scheduleErr?.message,
+        });
+        return;
+      }
+
+      kitData.questions = nextQuestions;
 
     }
 
