@@ -83,7 +83,7 @@ async function main() {
     console.log(`\n⏳ Processing case ${i + 1}/${cases.length} (ID: ${c.id})...`);
     
     // We execute the isolated core logic directly, not via HTTP or MongoDB
-    const result = await executePipelineCore(c.jd, c.company_url, c.days);
+    const result = await executePipelineCore(c.jd, c.company_url, c.days, true);
 
     if (result.ok) {
       console.log(`✅ Case ${c.id} generated successfully.`);

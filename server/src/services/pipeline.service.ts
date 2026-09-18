@@ -15,14 +15,15 @@ export type PipelineCoreResult =
 export async function executePipelineCore(
   jd: string,
   company_url: string,
-  days: number
+  days: number,
+  allowLocal: boolean = false
 ): Promise<PipelineCoreResult> {
   const log: any[] = [];
   try {
     const companyNameMatch = company_url.match(/https?:\/\/(?:www\.)?([^.]+)/i);
     const company = companyNameMatch ? companyNameMatch[1] : "The Company";
 
-    const research = await researchCompany(company_url, company);
+    const research = await researchCompany(company_url, company, { allowLocal });
     log.push({ step: "retrieval", success: true });
 
     const genResult = await generateKitDraft(jd, research);
