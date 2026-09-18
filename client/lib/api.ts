@@ -21,12 +21,16 @@ export async function apiFetch<T = unknown>(
     },
   });
 
-  // Global 401 handler — redirect to login
+  // Global 401 handler — redirect to login ONLY for protected endpoints.
+  // For auth endpoints (/auth/login, /auth/register), a 401 means wrong credentials
+  // and the calling page needs to show the error — do NOT redirect.
   if (res.status === 401) {
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+    const isAuthEndpoint = endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/register");
+    if (!isAuthEndpoint && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
       window.location.href = "/login";
     }
-    throw new ApiError(401, "Unauthorized");
+    const errData = await res.json().catch(() => ({}));
+    throw new ApiError(401, (errData as any)?.message || "Unauthorized", errData);
   }
 
   const data = await res.json();
