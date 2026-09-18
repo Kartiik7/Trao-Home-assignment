@@ -1,7 +1,12 @@
 import { checkCoverage } from "./coverage";
+import pLimit from "p-limit";
 import type { KitDraft } from "../generation/index";
 import type { Requirement, Question } from "../generation/steps";
 import type { LlmResult } from "../generation/llmClient";
+
+// Mirror the same concurrency cap used in generation/index.ts to avoid
+// rate-limit storms when re-filling coverage gaps on the second pass.
+const LLM_CONCURRENCY = 2;
 
 type GenerateQuestionsFn = (
   requirement: Requirement,
@@ -29,20 +34,23 @@ export async function runCoveragePassLoop(
     coverage.passes++;
     console.log(`[Planning] Pass ${coverage.passes}/${maxPasses}: ${coverage.uncovered_requirement_ids.length} requirements missing coverage.`);
     
-    const newQuestionsPromises = coverage.uncovered_requirement_ids.map(async (reqId) => {
-      const req = kitDraft.requirements.find(r => r.id === reqId);
-      if (!req) return [];
-      
-      const res = await generateQuestionsForRequirement(req, hiringProcessContext);
-      if (res.ok) {
-        return res.data.map(q => ({
-          ...q,
-          _meta: { origin: "generated" as const, pinned: false }
-        }));
-      }
-      failures.push({ reason: res.reason, details: res.details });
-      return [];
-    });
+    const limit = pLimit(LLM_CONCURRENCY);
+    const newQuestionsPromises = coverage.uncovered_requirement_ids.map((reqId) =>
+      limit(async () => {
+        const req = kitDraft.requirements.find(r => r.id === reqId);
+        if (!req) return [];
+        
+        const res = await generateQuestionsForRequirement(req, hiringProcessContext);
+        if (res.ok) {
+          return res.data.map(q => ({
+            ...q,
+            _meta: { origin: "generated" as const, pinned: false }
+          }));
+        }
+        failures.push({ reason: res.reason, details: res.details });
+        return [];
+      })
+    );
     
     const results = await Promise.all(newQuestionsPromises);
     const flattenedNewQuestions = results.flat();
