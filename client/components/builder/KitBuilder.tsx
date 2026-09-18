@@ -5,6 +5,7 @@ import type { Kit, Question, ItemMeta } from "@ai-interview-prep/types";
 import { Pin, Sparkles, Pencil, Hand, Play, ArrowLeft } from "lucide-react";
 import QuestionsSection from "./QuestionsSection";
 import CompanyBriefSection from "./CompanyBriefSection";
+import WeakSpotsSection from "./WeakSpotsSection";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 
@@ -77,6 +78,11 @@ export default function KitBuilder({ initialKit, kitId }: { initialKit: Kit; kit
           onUpdate={(company_brief) => applyPatch({ company_brief })} 
           onKitMerged={(newKit) => setKit(newKit)}
         />
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">Weak Spots Report</h2>
+        <WeakSpotsSection kitId={kitId} />
       </section>
 
       {/* Add Flashcards, Schedule rendering here */}

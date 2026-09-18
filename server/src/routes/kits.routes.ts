@@ -13,6 +13,7 @@ import { isAuthConfigError } from "../generation/llmClient";
 import { runCoveragePassLoop } from "../planning/index";
 import { PracticeProgress } from "../models/PracticeProgress";
 import { orderPracticeSession } from "../planning/practice";
+import { analyzeWeakSpots } from "../planning/weakSpots";
 
 const router = Router();
 
@@ -470,6 +471,36 @@ router.post("/:id/practice", async (req, res) => {
     res.status(200).json({ success: true });
   } catch (err) {
     console.error("[POST /kits/:id/practice]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * GET /kits/:id/weak-spots
+ * Returns the weak spots report for the kit based on practice progress.
+ */
+router.get("/:id/weak-spots", async (req, res) => {
+  try {
+    const kitDoc = await Kit.findOne({ _id: req.params.id, userId: req.userId });
+    if (!kitDoc || kitDoc.status !== "ready" || !kitDoc.kit_data) {
+      res.status(404).json({ error: "Kit not found or not ready" });
+      return;
+    }
+
+    const records = await PracticeProgress.find({ 
+      userId: req.userId, 
+      kitId: kitDoc._id 
+    });
+
+    const report = analyzeWeakSpots(
+      kitDoc.kit_data.role.requirements,
+      kitDoc.kit_data.flashcards,
+      records
+    );
+
+    res.json(report);
+  } catch (err) {
+    console.error("[GET /kits/:id/weak-spots]", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
