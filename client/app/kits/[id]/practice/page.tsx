@@ -1,39 +1,53 @@
+"use client";
+
+import { useEffect, useState, use } from "react";
 import { notFound } from "next/navigation";
 import PracticeSession from "../../../../components/practice/PracticeSession";
-import { cookies } from "next/headers";
 import { NavHeader } from "../../../../components/NavHeader";
+import { useAuth } from "@/lib/auth-context";
+import { apiFetch } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+export default function PracticePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { user, loading: authLoading } = useAuth();
+  
+  const [data, setData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-async function getPracticeData(id: string) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) return null;
-
-  try {
-    const res = await fetch(`${API_URL}/kits/${id}/practice`, {
-      headers: { Cookie: `token=${token}` },
-      cache: "no-store", 
-    });
-
-    if (!res.ok) {
-      if (res.status === 404) return null;
-      throw new Error(`Failed to fetch practice data: ${res.status}`);
+  useEffect(() => {
+    if (!user && !authLoading) {
+      setDataLoading(false);
+      return;
     }
 
-    return await res.json();
-  } catch (err) {
-    console.error("Fetch error:", err);
-    return null;
+    if (user) {
+      apiFetch<any>(`/kits/${id}/practice`)
+        .then((resData) => {
+          setData(resData);
+        })
+        .catch((err) => {
+          console.error("Fetch error:", err);
+          setError(true);
+        })
+        .finally(() => {
+          setDataLoading(false);
+        });
+    }
+  }, [user, authLoading, id]);
+
+  if (authLoading || dataLoading) {
+    return (
+      <div className="flex flex-1 min-h-screen items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
   }
-}
 
-export default async function PracticePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const data = await getPracticeData(id);
+  if (!user) return null;
 
-  if (!data) {
+  if (error || !data) {
     notFound();
   }
 
