@@ -38,6 +38,8 @@ cd server
 npm run evaluate -- --input cases.json --output output.json
 ```
 
+> **Local address testing fixture**: `test-fixtures/local-company-site/index.html` is a minimal static page used to verify that the batch command works against a `localhost` URL (per the local-address requirement). Serve it with any static server (e.g. `npx serve test-fixtures/local-company-site`) and pass its URL as the `company_url` in a test case. This file is intentionally kept in source control as evidence of local-URL testing; it is not needed for normal operation.
+
 ## 3. LLM Provider and Model
 - **Provider:** Groq (via `groq-sdk`)
 - **Model:** `openai/gpt-oss-20b` (Configured via `GROQ_MODEL` environment variable). Chosen for extreme generation speed and reliable JSON-mode outputs.

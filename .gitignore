@@ -35,3 +35,6 @@ yarn-error.log*
 # Generated evaluation output files (local only, not for source control)
 server/output.json
 server/timed-output.json
+server/cases.json
+output.json
+cases.json

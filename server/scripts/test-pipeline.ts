@@ -1,3 +1,5 @@
+// DEV ONLY — manual end-to-end smoke test for the retrieval + generation pipeline.
+// Not part of the graded pipeline; run with: ts-node scripts/test-pipeline.ts
 import "../src/env";
 import path from "path";
 
