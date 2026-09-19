@@ -25,7 +25,10 @@ export async function apiFetch<T = unknown>(
   // For auth endpoints (/auth/login, /auth/register), a 401 means wrong credentials
   // and the calling page needs to show the error — do NOT redirect.
   if (res.status === 401) {
-    const isAuthEndpoint = endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/register");
+    const isAuthEndpoint = 
+      endpoint.startsWith("/auth/login") || 
+      endpoint.startsWith("/auth/register") || 
+      endpoint.startsWith("/auth/me");
     if (!isAuthEndpoint && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
       window.location.href = "/login";
     }
