@@ -2,5 +2,8 @@
   command = "npm run build --workspace=client"
   base = ""
 
+[build.environment]
+  NPM_FLAGS = "--include=dev"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
