@@ -1,0 +1,7 @@
+Full Stack Developer
+
+Responsibilities and Tech Stack:
+- Build customer-facing web interfaces using TypeScript and React
+- Develop backend endpoints and serverless functions with Node.js
+- Write automated tests and participate in code reviews
+- Work with PostgreSQL databases and Redis caching

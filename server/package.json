@@ -9,7 +9,8 @@
     "postinstall": "npm run build || echo 'Skipping server build (tsc not available)'",
     "evaluate": "ts-node scripts/evaluate.ts",
     "evaluate:timed": "ts-node scripts/evaluate-timed.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:golden": "vitest run evals/golden.eval.test.ts"
   },
   "dependencies": {
     "@ai-interview-prep/types": "*",

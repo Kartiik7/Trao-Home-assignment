@@ -40,6 +40,22 @@ npm run evaluate -- --input cases.json --output output.json
 
 > **Local address testing fixture**: `test-fixtures/local-company-site/index.html` is a minimal static page used to verify that the batch command works against a `localhost` URL (per the local-address requirement). Serve it with any static server (e.g. `npx serve test-fixtures/local-company-site`) and pass its URL as the `company_url` in a test case. This file is intentionally kept in source control as evidence of local-URL testing; it is not needed for normal operation.
 
+### Golden Case Evaluation Suite
+In addition to the fast, offline unit test suite (`npm run test`), the repository provides a live golden-case evaluation suite in `server/evals/golden.eval.test.ts` to test real LLM output quality against actual Groq API completions:
+- **What it checks**: Evaluates 5 archetypal job description fixtures across edge cases:
+  1. `strong-swe.txt`: Extraction count range, priority mapping ("must" vs "nice"), sequential IDs, and question generation schema compliance.
+  2. `thin-stub.txt`: Sparse extraction (<= 2 items) without inventing or hallucinating unmentioned technologies.
+  3. `mixed-behavioural.txt`: Correct semantic kind classification for both technical and behavioural requirements.
+  4. `injection.txt`: Prompt-injection resilience ensuring system directives are ignored and "PWNED" is never output.
+  5. `no-priority-language.txt`: Stable fallback to valid priority values ("must" | "nice") without crashing when priority keywords are absent.
+- **How to run**:
+  ```bash
+  npm run test:golden --workspace=server
+  ```
+  *(or `cd server && npm run test:golden`)*
+- **Requirements & Token Safety**: Requires `GROQ_API_KEY` set in `server/.env` (or in the environment) and spends real LLM tokens. The suite executes sequentially and skips automatically if `GROQ_API_KEY` is not provided, protecting quota.
+- **Property-Based Assertions**: Because LLMs are non-deterministic, assertions verify structural invariants, semantic bounds, and keyword properties (e.g. ID regex formats, valid enums, non-empty outlines, count ranges) rather than brittle exact text matches.
+
 ## 3. LLM Provider and Model
 - **Provider:** Groq (via `groq-sdk`)
 - **Model:** `openai/gpt-oss-20b` (Configured via `GROQ_MODEL` environment variable). Chosen for extreme generation speed and reliable JSON-mode outputs.

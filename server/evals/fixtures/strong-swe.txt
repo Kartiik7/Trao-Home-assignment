@@ -1,0 +1,15 @@
+Senior Full-Stack Engineer
+
+About the Role:
+We are looking for an experienced Senior Full-Stack Engineer to join our team.
+
+Required:
+- 5+ years of production experience with TypeScript and Node.js
+- Proficiency in React and modern frontend web development
+- Strong database design skills with PostgreSQL or MongoDB
+
+Nice to have:
+- Experience with Docker, Kubernetes, and container orchestration
+- Familiarity with AWS cloud infrastructure and CI/CD pipelines
+
+You will work closely with product managers and participate in architecture discussions.

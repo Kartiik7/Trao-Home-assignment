@@ -1,0 +1,6 @@
+Lead Software Engineer
+
+Requirements:
+- 7+ years of experience with distributed systems and microservices in Go or Java
+- Mentors junior engineers and fosters an inclusive engineering team culture
+- Collaborates across product and design teams to align on roadmap delivery
