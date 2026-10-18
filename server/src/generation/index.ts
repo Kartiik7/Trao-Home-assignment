@@ -88,7 +88,17 @@ export async function generateKitDraft(
     requirements = [];
   } else {
     requirements = reqRes.data;
-    log.push({ step: "extractRequirements", success: true });
+    if (requirements.length === 0) {
+      log.push({
+        step: "extractRequirements",
+        success: true,
+        reason: isThinJd
+          ? `NOTE: Thin JD yielded 0 requirements (${jdText.length} chars < ${MIN_JD_LENGTH}).`
+          : "NOTE: Extraction completed successfully but 0 requirements were found in the JD.",
+      });
+    } else {
+      log.push({ step: "extractRequirements", success: true });
+    }
   }
 
   // Brief can also degrade — if it fails, produce an honest "unavailable" brief

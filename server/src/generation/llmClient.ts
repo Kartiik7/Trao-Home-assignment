@@ -55,6 +55,25 @@ async function executeWithBackoff(prompt: string, attempt = 1): Promise<string> 
   }
 }
 
+function normalizeArrayOutput(parsedJson: unknown, schema: z.ZodType<unknown>): unknown {
+  if (!(schema instanceof z.ZodArray)) {
+    return parsedJson;
+  }
+  if (parsedJson && typeof parsedJson === "object" && !Array.isArray(parsedJson)) {
+    const keys = Object.keys(parsedJson);
+    if (keys.length === 0) {
+      return [];
+    }
+    if (keys.length === 1) {
+      const val = (parsedJson as Record<string, unknown>)[keys[0]];
+      if (Array.isArray(val)) {
+        return val;
+      }
+    }
+  }
+  return parsedJson;
+}
+
 /**
  * Calls the LLM, expecting a JSON response that matches the provided Zod schema.
  * - Retries on 429s (rate limits) with exponential backoff.
@@ -82,7 +101,8 @@ export async function callLlm<T>(
     
     // Parse and validate
     const parsedJson = JSON.parse(rawText);
-    const validated = schema.safeParse(parsedJson);
+    const normalizedJson = normalizeArrayOutput(parsedJson, schema);
+    const validated = schema.safeParse(normalizedJson);
     
     if (validated.success) {
       return { ok: true, data: validated.data };
@@ -117,7 +137,8 @@ Ensure you return ONLY valid JSON matching the requested structure. No markdown 
       }
 
       const parsedJson = JSON.parse(cleanText);
-      const validated = schema.safeParse(parsedJson);
+      const normalizedJson = normalizeArrayOutput(parsedJson, schema);
+      const validated = schema.safeParse(normalizedJson);
       
       if (validated.success) {
         return { ok: true, data: validated.data };

@@ -113,6 +113,76 @@ describe("LLM Generation Layer", () => {
       expect(isAuthConfigError("MALFORMED_JSON", "401")).toBe(false);
       expect(isAuthConfigError(undefined, undefined)).toBe(false);
     });
+
+    it("should normalize empty object {} to empty array [] for ZodArray schemas", async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        choices: [{ message: { content: "{}" } }]
+      });
+
+      const ArraySchema = z.array(z.string());
+      const res = await callLlm("extract items", ArraySchema);
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.data).toEqual([]);
+      }
+    });
+
+    it("should normalize single-key array wrapper like {'requirements': [...]} for ZodArray schemas", async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                requirements: [
+                  { id: "r1", text: "React knowledge", kind: "technical", priority: "must" }
+                ]
+              })
+            }
+          }
+        ]
+      });
+
+      const ReqArraySchema = z.array(
+        z.object({
+          id: z.string(),
+          text: z.string(),
+          kind: z.string(),
+          priority: z.string()
+        })
+      );
+
+      const res = await callLlm("extract reqs", ReqArraySchema);
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.data).toEqual([
+          { id: "r1", text: "React knowledge", kind: "technical", priority: "must" }
+        ]);
+      }
+    });
+
+    it("should never normalize object schemas when response is an object", async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        choices: [{ message: { content: "{}" } }]
+      });
+
+      // DummySchema requires { foo: string }
+      // Should fail schema validation on Attempt 1 and retry Attempt 2, never normalizing to []
+      mockGenerateContent.mockResolvedValueOnce({
+        choices: [{ message: { content: "{}" } }]
+      });
+
+      const res = await callLlm("get brief", DummySchema);
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.reason).toBe("SCHEMA_VALIDATION_FAILED");
+      }
+    });
   });
 
   describe("Pipeline Steps", () => {
